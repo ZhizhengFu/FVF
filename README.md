@@ -1,8 +1,19 @@
 # FVF
 
+## torch settings
+
+In some cases, you may want to use CPU-only builds in some cases, but CUDA-enabled builds in others, with the choice toggled by a user-provided extra.
+
+```bash
+uv sync --extra cpu
+```
+```bash
+uv sync --extra cu124
+```
+
 TODO list:
 
 - [ ] Toml config file design
-- [ ] uv environment
-  - [ ] torch / torch vision
+- [x] uv environment
+  - [x] torch / torch vision
 - [ ] ruff script

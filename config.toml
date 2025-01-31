@@ -1,0 +1,14 @@
+[data]
+train_data_path = "dataset"
+test_data_path = "dataset"
+
+[model]
+model_path = "usrnet"
+
+[train]
+epochs = 100000
+batch_size = 32
+learning_rate = 1e-4
+
+[train.wandb]
+wandb_name = "usrnet"

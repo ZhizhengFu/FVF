@@ -11,6 +11,12 @@ uv sync --extra cpu
 uv sync --extra cu124
 ```
 
+---
+how to run the code:
+```bash
+uv run hello.py
+```
+
 TODO list:
 
 - [x] Basic file structure
@@ -19,3 +25,4 @@ TODO list:
 - [x] uv environment
   - [x] torch / torch vision
 - [ ] ruff script
+- [ ] multi_GPU support

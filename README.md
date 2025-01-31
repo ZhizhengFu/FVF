@@ -13,8 +13,9 @@ uv sync --extra cu124
 
 TODO list:
 
-- [ ] Toml config file design
-- [ ] wandb settings
+- [x] Basic file structure
+- [x] Toml config file design
+- [x] wandb settings
 - [x] uv environment
   - [x] torch / torch vision
 - [ ] ruff script

@@ -15,6 +15,6 @@ wandb_project_name = "usrnet"
 
 [log]
 log_path = "log"
-save_type = "best" # last, best
+save_type = "last" # last, best
 checkpoint_save = 1000
 checkpoint_test = 1000

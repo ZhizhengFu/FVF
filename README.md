@@ -26,3 +26,5 @@ uv run hello.py
   - [x] torch / torch vision
 - [ ] ruff script
 - [ ] multi_GPU support
+- [ ] multi_model support
+  - [ ] config file design

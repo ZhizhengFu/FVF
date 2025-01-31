@@ -1,0 +1,20 @@
+[data]
+data_name = "DIV2K+Flickr2K"
+
+[model]
+model_name = "usrnet"
+
+[train]
+epochs = 100000
+batch_size = 32
+learning_rate = 1e-4
+n_gpu = [0]
+
+[train.wandb]
+wandb_project_name = "usrnet"
+
+[log]
+log_path = "log"
+save_type = "best" # last, best
+checkpoint_save = 1000
+checkpoint_test = 1000

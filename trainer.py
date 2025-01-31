@@ -14,7 +14,7 @@ config.dropout = 0.01
 # 3. Log gradients and model parameters
 run.watch(model)
 for batch_idx, (data, target) in enumerate(train_loader):
-    ...
+
     if batch_idx % args.log_interval == 0:
         # 4. Log metrics to visualize performance
         run.log({"loss": loss})

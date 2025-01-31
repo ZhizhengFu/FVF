@@ -17,7 +17,7 @@ how to run the code:
 uv run hello.py
 ```
 
-TODO list:
+## TODO list:
 
 - [x] Basic file structure
 - [x] Toml config file design

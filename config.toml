@@ -1,6 +1,7 @@
 [data]
-train_data_path = "dataset"
-test_data_path = "dataset"
+data_name = "DIV2K+Flickr2K"
+train_data_path = "train_dataset"
+test_data_path = "test_dataset"
 
 [model]
 model_path = "usrnet"
@@ -12,3 +13,7 @@ learning_rate = 1e-4
 
 [train.wandb]
 wandb_name = "usrnet"
+
+[log]
+model_save
+model_test

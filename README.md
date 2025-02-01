@@ -17,6 +17,11 @@ how to run the code:
 uv run hello.py
 ```
 
+how to format:
+```bash
+ruff format
+```
+
 ## TODO list:
 
 - [x] Basic file structure

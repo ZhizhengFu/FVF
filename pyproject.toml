@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "F's computer vision PyTorch framework"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "wandb>=0.19.5",
+]
 
 [project.optional-dependencies]
 cpu = ["torch>=2.5.1", "torchvision>=0.20.1"]

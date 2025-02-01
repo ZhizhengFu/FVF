@@ -1,11 +1,11 @@
 import wandb
 import tomllib
 
-with open("config.toml", "rb") as f:
+with open("config/usrnet.toml", "rb") as f:
     data = tomllib.load(f)
 
 # 1. Start a new run
-run = wandb.init(project="gpt4")
+run = wandb.init(project="")
 
 # 2. Save model inputs and hyperparameters
 config = run.config

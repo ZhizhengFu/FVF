@@ -29,7 +29,10 @@ ruff format
 - [x] wandb settings
 - [x] uv environment
   - [x] torch / torch vision
-- [ ] ruff script
-- [ ] multi_GPU support
+- [x] ruff
+- [ ] init seed
+- [ ] save model
+- [ ] init wandb
+- [ ] multi-GPU
 - [ ] multi_model support
   - [ ] config file design

@@ -19,7 +19,7 @@ uv run hello.py
 
 how to format:
 ```bash
-ruff format
+uv run ruff check
 ```
 
 ## TODO list:

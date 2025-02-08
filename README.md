@@ -35,7 +35,7 @@ uv lock --upgrade
 - [x] uv environment
   - [x] torch / torch vision
 - [x] ruff
-- [ ] init seed
+- [x] init seed
 - [ ] save model
 - [ ] init wandb
 - [ ] multi-GPU

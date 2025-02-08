@@ -22,6 +22,11 @@ how to format:
 uv run ruff check
 ```
 
+how to update package:
+```bash
+uv lock --upgrade
+```
+
 ## TODO list:
 
 - [x] Basic file structure

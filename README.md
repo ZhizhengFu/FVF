@@ -19,6 +19,9 @@ uv run hello.py
 
 how to format:
 ```bash
+uv run ruff format
+```
+```bash
 uv run ruff check
 ```
 

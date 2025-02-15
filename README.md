@@ -45,3 +45,9 @@ uv lock --upgrade
 - [ ] multi-GPU
 - [ ] multi_model support
   - [ ] config file design
+
+## Reference
+
+<https://github.com/RL-VIG/LibFewShot>
+
+<https://github.com/cszn/KAIR>

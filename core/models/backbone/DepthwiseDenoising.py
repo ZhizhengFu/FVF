@@ -15,14 +15,6 @@ class AdaptiveModulation(nn.Module):
         return gamma * x + beta
 
 
-# 示例
-modulation = AdaptiveModulation(64)
-x = torch.randn(1, 64, 128, 128)
-beta = torch.tensor([sf / (sigma + 1)])  # 计算 beta
-y = modulation(x, beta)
-print(y.shape)
-
-
 class DepthwiseDenoisingBlock(nn.Module):
     def __init__(self, channels=64, kernel_size=3, scale=0.1):
         super(DepthwiseDenoisingBlock, self).__init__()

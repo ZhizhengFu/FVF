@@ -1,5 +1,34 @@
 # FVF
 
+```text
+FVF/
+├── configs/
+│   └── model_config.toml
+├── core/
+│   ├── config/
+│   │   └── config.py
+│   ├── data/
+│   │   ├── datasets.py
+│   │   ├── transforms.py
+│   │   └── dataloader.py
+│   ├── models/
+│   │   ├── factory.py
+│   │   └── custom_model.py
+│   ├── engine/
+│   │   ├── trainer.py
+│   │   └── callbacks.py
+│   ├── utils/
+│   │   ├── logger.py
+│   │   ├── wandb_integration.py
+│   │   └── checkpoint.py
+│   └── __init__.py
+├── scripts/
+│   ├── train.py
+│   └── inference.py
+├── experiments/
+└── README.md
+```
+
 ## torch settings
 
 In some cases, you may want to use CPU-only builds in some cases, but CUDA-enabled builds in others, with the choice toggled by a user-provided extra.

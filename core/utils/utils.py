@@ -5,14 +5,11 @@ import warnings
 import numpy as np
 
 
-def init_seed(seed=0, n_gpu=1, deterministic=False):
-    """
-    Initialize random seeds for reproducibility.
+def get_cur_path():
+    return os.path.dirname(os.path.abspath(__file__))
 
-    :param seed: int, random seed value.
-    :param n_gpu: int, number of GPUs.
-    :param deterministic: bool, if True, ensures deterministic behavior at the cost of performance.
-    """
+
+def init_seed(seed=0, n_gpu=1, deterministic=False):
     if not isinstance(seed, int) or seed < 0:
         raise ValueError("Seed must be a non-negative integer.")
     if not isinstance(n_gpu, int) or n_gpu < 1:

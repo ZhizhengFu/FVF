@@ -31,7 +31,7 @@ class Config:
 
 
 if __name__ == "__main__":
-    config = Config("/Users/fuzz/Documents/FVF/configs/config.toml")
+    config = Config("configs/config.toml")
     print(config.config_dict)
     for key in config:
         print(f"{key}: {config[key]}")

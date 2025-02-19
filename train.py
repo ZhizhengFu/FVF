@@ -7,5 +7,6 @@ def main():
     _ = Trainer(config)
     print(config.config_dict)
 
+
 if __name__ == "__main__":
     main()

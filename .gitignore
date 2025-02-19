@@ -2,3 +2,4 @@ wandb
 .ropeproject
 .venv
 .ruff_cache
+__pycache__

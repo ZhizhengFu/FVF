@@ -1,5 +1,5 @@
 from core.config import Config
-from core.trainer import Trainer
+from core.engine import Trainer
 
 
 def main():

@@ -22,9 +22,10 @@ FVF/
 │   │   ├── wandb_integration.py
 │   │   └── checkpoint.py
 │   └── __init__.py
-├── train.py
-├── inference.py
+├── datasets/
 ├── experiments/
+├── train.py
+├── test.py
 └── README.md
 ```
 

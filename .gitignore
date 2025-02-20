@@ -1,5 +1,5 @@
-wandb
+__pycache__
 .ropeproject
 .venv
 .ruff_cache
-__pycache__
+wandb

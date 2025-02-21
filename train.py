@@ -3,6 +3,7 @@ from core.engine import Trainer
 
 CONFIG_NAME = "usrnet"
 
+
 def main():
     config = Config(f"configs/{CONFIG_NAME}.toml")
     trainer = Trainer(config)

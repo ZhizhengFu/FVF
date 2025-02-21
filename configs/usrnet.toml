@@ -1,17 +1,19 @@
 [model]
-model_name = "usrnet"
+name = "usrnet"
 pretrained_path = ""
 
 [train]
+is_save = false
 epochs = 100000
 batch_size = 32
-learning_rate = 1e-4
+lr = 1e-4
 n_gpu = [0]
+seed = 42
 checkpoint_save = 1000
 checkpoint_test = 1000
 
 [train.wandb]
-is_enabled = true
+is_enabled = false
 project = "usrnet"
 
 [datasets]
@@ -21,7 +23,7 @@ test_path = ""
 [datasets.train]
 scales = [1, 2, 3, 4]
 max_sigma = 25
-crop_size = 96
+patch_size = 96
 
 
 [datasets.test]

@@ -1,45 +1,32 @@
 import os
-import torch
+import wandb
+import datetime
 import random
-import warnings
+import torch
 import numpy as np
+from typing import Any
 
 
-def get_cur_path():
-    return os.path.dirname(os.path.abspath(__file__))
+def get_value(my_dict: dict, key: str, default: Any = None) -> Any:
+    value = my_dict.get(key, default)
+    return value if value != "" else default
 
+def get_cur_time() -> str:
+    return datetime.datetime.now().strftime("%y%m%d_%H%M%S")
 
-def init_seed(seed=0, n_gpu=1, deterministic=False):
-    if not isinstance(seed, int) or seed < 0:
-        raise ValueError("Seed must be a non-negative integer.")
-    if not isinstance(n_gpu, int) or n_gpu < 1:
-        raise ValueError("Number of GPUs must be a positive integer.")
+def create_experiment_directory(model_name: str, dir_name):
+    dir_path = os.path.join("experiments", model_name, dir_name)
+    os.makedirs(dir_path, exist_ok=True)
 
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    random.seed(seed)
-    np.random.seed(seed)
+def init_wandb(project: str, name: str):
+    wandb.init(project=project, name=name)
+
+def init_seed(seed: int = 0):
     torch.manual_seed(seed)
-    if n_gpu > 1:
-        torch.cuda.manual_seed_all(seed)
-
-    if deterministic:
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.enabled = False
-        try:
-            torch.use_deterministic_algorithms(True)
-        except RuntimeError as e:
-            warnings.warn(
-                f"Some operations may not have deterministic implementations in PyTorch: {e}",
-                UserWarning,
-            )
-        warnings.warn(
-            "Deterministic mode enabled, this may slow down training.", UserWarning
-        )
-    else:
-        torch.backends.cudnn.benchmark = True
-        torch.backends.cudnn.deterministic = False
-
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 if __name__ == "__main__":
-    init_seed(0, deterministic=False)
+    print(get_cur_time())

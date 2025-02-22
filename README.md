@@ -68,9 +68,9 @@ uv lock --upgrade
   - [x] torch / torch vision
 - [x] ruff
 - [x] init seed
+- [x] init wandb
 - [ ] logger
 - [ ] save model
-- [ ] init wandb
 - [ ] multi-GPU
 - [ ] multi_model support
   - [ ] config file design

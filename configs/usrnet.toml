@@ -3,12 +3,13 @@ name = "usrnet"
 pretrained_path = ""
 
 [train]
-is_save = false
+save_snapshots = false
 epochs = 100000
 batch_size = 32
 lr = 1e-4
 n_gpu = [0]
 seed = 42
+deterministic = false
 checkpoint_save = 1000
 checkpoint_test = 1000
 
@@ -24,7 +25,6 @@ test_path = ""
 scales = [1, 2, 3, 4]
 max_sigma = 25
 patch_size = 96
-
 
 [datasets.test]
 scales = [1, 2, 3, 4]

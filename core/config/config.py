@@ -29,4 +29,3 @@ class Config(dict):
 if __name__ == "__main__":
     config = Config.from_toml("configs/usrnet.toml")
     print(config.datasets.train.scales)
-    print(config["train"]["n_gpu"])

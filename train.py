@@ -5,7 +5,7 @@ CONFIG_NAME = "usrnet"
 
 
 def main():
-    config = Config(f"configs/{CONFIG_NAME}.toml")
+    config = Config.from_toml(f"configs/{CONFIG_NAME}.toml")
     trainer = Trainer(config)
     trainer.run_loop()
 

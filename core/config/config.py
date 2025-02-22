@@ -2,16 +2,31 @@ import tomllib
 
 
 class Config(dict):
-    def __init__(self, config_path: str):
-        super().__init__(self._load_config_dict(config_path))
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for key, value in self.items():
+            if isinstance(value, dict):
+                self[key] = Config(value)
 
-    def _load_config_dict(self, config_path: str) -> dict:
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
+
+    def __setattr__(self, name, value):
+        self[name] = Config(value) if isinstance(value, dict) else value
+
+    @classmethod
+    def from_toml(cls, config_path: str):
         with open(config_path, "rb") as f:
-            raw_config = tomllib.load(f)
-        return raw_config
+            data = tomllib.load(f)
+        return cls(data)
 
 
 if __name__ == "__main__":
-    config = Config("configs/usrnet.toml")
-    for key in config:
-        print(f"{key}: {config[key]}")
+    config = Config.from_toml("configs/usrnet.toml")
+    print(config.datasets.train.scales)
+    print(config["train"]["n_gpu"])

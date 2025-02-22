@@ -25,12 +25,15 @@ def init_wandb(project: str, name: str):
     wandb.init(project=project, name=name)
 
 
-def init_seed(seed: int = 0):
+def init_seed(seed: int = 0, deterministic: bool = False):
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
+    torch.backends.cudnn.benchmark = not deterministic
+    torch.backends.cudnn.deterministic = deterministic
 
 
 if __name__ == "__main__":

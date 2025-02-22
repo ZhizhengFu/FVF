@@ -1,24 +1,44 @@
 import os
-import wandb
-import datetime
-import random
 import torch
+import wandb
+import shutil
+import random
+import datetime
+import subprocess
 import numpy as np
+from pathlib import Path
+from torch.optim.lr_scheduler import LRScheduler
 from typing import Any
 
 
-def get_value(my_dict: dict, key: str, default: Any = None) -> Any:
+class GradualWarmupScheduler(LRScheduler):
+    pass
+
+
+def _get_git_files(command):
+    output = subprocess.check_output(command, shell=True)
+    return set(output.decode().splitlines())
+
+
+def save_code_snapshot(model_name: str, dir_name):
+    dir_path = Path("experiments") / model_name / dir_name
+    dir_path.mkdir(parents=True, exist_ok=True)
+    for file_path in _get_git_files("git ls-files"):
+        source_path = Path(file_path)
+        if source_path.is_dir():
+            continue
+        destination_path = dir_path / file_path
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source_path, destination_path)
+
+
+def get_dict_value(my_dict: dict, key: str, default: Any = None) -> Any:
     value = my_dict.get(key, default)
     return value if value != "" else default
 
 
 def get_cur_time() -> str:
     return datetime.datetime.now().strftime("%y%m%d_%H%M%S")
-
-
-def create_experiment_directory(model_name: str, dir_name):
-    dir_path = os.path.join("experiments", model_name, dir_name)
-    os.makedirs(dir_path, exist_ok=True)
 
 
 def init_wandb(project: str, name: str):

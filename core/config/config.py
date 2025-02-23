@@ -39,5 +39,5 @@ class Config(dict):
 
 if __name__ == "__main__":
     config = Config.from_toml("configs/usrnet.toml")
-    print(config.model.pretrained_path) # return None
+    print(config.model.pretrained_path)  # return None
     print(config.model.pretrained_pat)  # return Warning + None

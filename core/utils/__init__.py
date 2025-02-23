@@ -1,5 +1,4 @@
 from .utils import (
-    get_dict_value,
     get_cur_time,
     save_code_snapshot,
     init_wandb,
@@ -7,7 +6,6 @@ from .utils import (
 )
 
 __all__ = [
-    "get_dict_value",
     "get_cur_time",
     "save_code_snapshot",
     "init_wandb",

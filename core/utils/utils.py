@@ -8,16 +8,10 @@ import subprocess
 import numpy as np
 from pathlib import Path
 from torch.optim.lr_scheduler import LRScheduler
-from typing import Any
 
 
 class GradualWarmupScheduler(LRScheduler):
     pass
-
-
-def _get_git_files(command: str) -> set[str]:
-    output = subprocess.check_output(command, shell=True)
-    return set(output.decode().splitlines())
 
 
 def save_code_snapshot(model_name: str, dir_name: str) -> None:
@@ -32,9 +26,9 @@ def save_code_snapshot(model_name: str, dir_name: str) -> None:
         shutil.copyfile(source_path, destination_path)
 
 
-def get_dict_value(my_dict: dict, key: str, default: Any = None) -> Any:
-    value = my_dict.get(key, default)
-    return value if value != "" else default
+def _get_git_files(command: str) -> set[str]:
+    output = subprocess.check_output(command, shell=True)
+    return set(output.decode().splitlines())
 
 
 def get_cur_time() -> str:

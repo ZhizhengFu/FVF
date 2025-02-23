@@ -15,12 +15,12 @@ class GradualWarmupScheduler(LRScheduler):
     pass
 
 
-def _get_git_files(command):
+def _get_git_files(command: str) -> set[str]:
     output = subprocess.check_output(command, shell=True)
     return set(output.decode().splitlines())
 
 
-def save_code_snapshot(model_name: str, dir_name):
+def save_code_snapshot(model_name: str, dir_name: str) -> None:
     dir_path = Path("experiments") / model_name / dir_name
     dir_path.mkdir(parents=True, exist_ok=True)
     for file_path in _get_git_files("git ls-files"):
@@ -41,11 +41,11 @@ def get_cur_time() -> str:
     return datetime.datetime.now().strftime("%y%m%d_%H%M%S")
 
 
-def init_wandb(project: str, name: str):
+def init_wandb(project: str, name: str) -> None:
     wandb.init(project=project, name=name)
 
 
-def init_seed(seed: int = 0, deterministic: bool = False):
+def init_seed(seed: int = 0, deterministic: bool = False) -> None:
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)

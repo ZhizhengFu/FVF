@@ -1,5 +1,5 @@
 from core.config import Config
-from core.utils import get_cur_time, init_wandb, init_seed, save_code_snapshot
+from core.utils import get_cur_time, init_wandb, init_seed, save_code_snapshot, print_env_info
 
 
 class Trainer:
@@ -7,7 +7,11 @@ class Trainer:
         self.config: Config = config
         self._init_train()
 
+    def run_loop(self):
+        print("Running loop")
+
     def _init_train(self):
+        print_env_info()
         init_seed(self.config.train.seed, self.config.train.deterministic)
         if self.config.train.save_snapshots:
             save_code_snapshot(self.config.model.name, self._generate_dir_name())
@@ -19,6 +23,3 @@ class Trainer:
 
     def _generate_dir_name(self) -> str:
         return f"{get_cur_time()}_{self.config.train.lr:.0e}"
-
-    def run_loop(self):
-        print("Running loop")

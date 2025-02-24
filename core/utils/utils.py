@@ -1,9 +1,11 @@
 import os
+import sys
 import torch
 import wandb
 import shutil
 import random
 import datetime
+import torchvision
 import subprocess
 import numpy as np
 from pathlib import Path
@@ -49,6 +51,21 @@ def init_seed(seed: int = 0, deterministic: bool = False) -> None:
     torch.backends.cudnn.benchmark = not deterministic
     torch.backends.cudnn.deterministic = deterministic
 
+def print_env_info():
+    msg = r"""
+    ████████╗   ██╗   ██╗    ████████╗
+    ██╔════╝    ██║   ██║    ██╔════╝
+    █████╗      ██║   ██║    █████╗
+    ██╔══╝      ╚██╗ ██╔╝    ██╔══╝
+    ██║          ╚████╔╝     ██║
+   ╚══╝           ╚═══╝     ╚══╝
+    """
+    msg += ('\nVersion Information: '
+                f'\n\tPyTorch: {torch.__version__}'
+                f'\n\tTorchVision: {torchvision.__version__}'
+                f'\n\tPython: {sys.version}'
+    )
+    print(msg)
 
 if __name__ == "__main__":
     print(get_cur_time())

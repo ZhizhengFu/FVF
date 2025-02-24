@@ -3,24 +3,23 @@
 ```text
 FVF/
 ├── configs/
-│   └── model_config.toml
+│   └── ......
 ├── core/
 │   ├── config/
 │   │   └── config.py
 │   ├── data/
 │   │   ├── datasets.py
-│   │   ├── transforms.py
-│   │   └── dataloader.py
+│   │   └── ......
 │   ├── models/
-│   │   ├── factory.py
-│   │   └── custom_model.py
+│   │   ├── backbone/
+│   │   └── ......
 │   ├── engine/
 │   │   ├── trainer.py
-│   │   └── callbacks.py
+│   │   └── ......
 │   ├── utils/
 │   │   ├── logger.py
-│   │   ├── wandb_integration.py
-│   │   └── checkpoint.py
+│   │   ├── utils.py
+│   │   └── ......
 │   └── __init__.py
 ├── datasets/
 ├── experiments/

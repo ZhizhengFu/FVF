@@ -1,5 +1,13 @@
 # FVF
 
+## Say Hello!
+
+```bash
+uv run hello.py
+```
+
+---
+
 ```text
 FVF/
 ├── configs/

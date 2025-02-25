@@ -1,5 +1,11 @@
 from core.config import Config
-from core.utils import get_cur_time, init_wandb, init_seed, save_code_snapshot, print_env_info
+from core.utils import (
+    get_cur_time,
+    init_wandb,
+    init_seed,
+    save_code_snapshot,
+    print_env_info,
+)
 
 
 class Trainer:

@@ -4,7 +4,7 @@ from .utils import (
     save_code_snapshot,
     init_wandb,
     init_seed,
-    print_env_info
+    print_env_info,
 )
 
 __all__ = [
@@ -13,5 +13,5 @@ __all__ = [
     "save_code_snapshot",
     "init_wandb",
     "init_seed",
-    "print_env_info"
+    "print_env_info",
 ]

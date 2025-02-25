@@ -6,7 +6,6 @@ import shutil
 import random
 import datetime
 import torchvision
-import subprocess
 import numpy as np
 from pathlib import Path
 from textwrap import dedent
@@ -16,23 +15,15 @@ from torch.optim.lr_scheduler import LRScheduler
 class GradualWarmupScheduler(LRScheduler):
     pass
 
-
 def save_code_snapshot(model_name: str, dir_name: str) -> None:
-    dir_path = Path("experiments") / model_name / dir_name
-    dir_path.mkdir(parents=True, exist_ok=True)
-    for file_path in _get_git_files("git ls-files"):
-        source_path = Path(file_path)
-        if source_path.is_dir():
-            continue
-        destination_path = dir_path / file_path
-        destination_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source_path, destination_path)
-
-
-def _get_git_files(command: str) -> set[str]:
-    output = subprocess.check_output(command, shell=True)
-    return set(output.decode().splitlines())
-
+    src_dir = Path("core")
+    dst_dir = Path("experiments") / model_name / dir_name
+    for file_path in src_dir.rglob("*"):
+        if file_path.is_file() and "__pycache__" not in file_path.parts:
+            destination_path = dst_dir / file_path.relative_to(src_dir)
+            destination_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(file_path, destination_path)
+    shutil.copy(Path("configs")/f"{model_name}.toml",dst_dir)
 
 def get_cur_time() -> str:
     return datetime.datetime.now().strftime("%y%m%d_%H%M%S")
@@ -54,12 +45,12 @@ def init_seed(seed: int = 0, deterministic: bool = False) -> None:
 
 def print_env_info() -> None:
     msg = r"""
-    ███████╗  ██╗   ██╗  ███████╗
-    ██╔════╝  ██║   ██║  ██╔════╝
-    █████╗    ██║   ██║  █████╗
-    ██╔══╝    ╚██╗ ██╔╝  ██╔══╝
-    ██║        ╚████╔╝   ██║
-    ╚═╝         ╚═══╝    ╚═╝
+    ████████╗  ██╗   ██╗  ████████╗
+    ██╔═════╝  ██║   ██║  ██╔═════╝
+    █████╗     ██║   ██║  █████╗
+    ██╔══╝     ╚██╗ ██╔╝  ██╔══╝
+    ██║         ╚████╔╝   ██║
+    ╚═╝          ╚═══╝    ╚═╝
     """
     msg += dedent(f"""
         Version Information:

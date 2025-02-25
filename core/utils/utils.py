@@ -9,6 +9,7 @@ import torchvision
 import subprocess
 import numpy as np
 from pathlib import Path
+from textwrap import dedent
 from torch.optim.lr_scheduler import LRScheduler
 
 
@@ -51,20 +52,21 @@ def init_seed(seed: int = 0, deterministic: bool = False) -> None:
     torch.backends.cudnn.benchmark = not deterministic
     torch.backends.cudnn.deterministic = deterministic
 
-def print_env_info():
+def print_env_info() -> None:
     msg = r"""
-    ████████╗   ██╗   ██╗    ████████╗
-    ██╔════╝    ██║   ██║    ██╔════╝
-    █████╗      ██║   ██║    █████╗
-    ██╔══╝      ╚██╗ ██╔╝    ██╔══╝
-    ██║          ╚████╔╝     ██║
-   ╚══╝           ╚═══╝     ╚══╝
+    ███████╗  ██╗   ██╗  ███████╗
+    ██╔════╝  ██║   ██║  ██╔════╝
+    █████╗    ██║   ██║  █████╗
+    ██╔══╝    ╚██╗ ██╔╝  ██╔══╝
+    ██║        ╚████╔╝   ██║
+    ╚═╝         ╚═══╝    ╚═╝
     """
-    msg += ('\nVersion Information: '
-                f'\n\tPyTorch: {torch.__version__}'
-                f'\n\tTorchVision: {torchvision.__version__}'
-                f'\n\tPython: {sys.version}'
-    )
+    msg += dedent(f"""
+        Version Information:
+            PyTorch: {torch.__version__}
+            TorchVision: {torchvision.__version__}
+            Python: {sys.version}
+    """)
     print(msg)
 
 if __name__ == "__main__":

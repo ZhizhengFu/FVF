@@ -37,7 +37,7 @@ FVF/
 └── README.md
 ```
 
-## torch settings
+## env sync / script
 
 In some cases, you may want to use CPU-only builds in some cases, but CUDA-enabled builds in others, with the choice toggled by a user-provided extra.
 
@@ -49,12 +49,12 @@ uv sync --extra cu124
 ```
 
 ---
-how to run the code:
+run the code:
 ```bash
 uv run hello.py
 ```
 
-how to format:
+code format:
 ```bash
 uv run ruff format
 ```
@@ -62,7 +62,7 @@ uv run ruff format
 uv run ruff check
 ```
 
-how to update package:
+update package:
 ```bash
 uv lock --upgrade
 ```
@@ -75,8 +75,7 @@ uv lock --upgrade
 - [x] uv environment
   - [x] torch / torch vision
 - [x] ruff
-- [x] init seed
-- [x] init wandb
+- [x] init seed / wandb
 - [ ] logger
 - [ ] save model
 - [ ] multi-GPU

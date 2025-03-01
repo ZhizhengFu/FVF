@@ -1,5 +1,6 @@
 import tomllib
 import warnings
+from core.utils import print_env_info
 
 
 class Config(dict):
@@ -32,8 +33,10 @@ class Config(dict):
 
     @classmethod
     def from_toml(cls, config_path: str):
+        print_env_info()
         with open(config_path, "rb") as f:
             data = tomllib.load(f)
+        print(f"Configuration loaded from {config_path}")
         return cls(data)
 
 

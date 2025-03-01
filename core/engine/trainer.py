@@ -4,7 +4,6 @@ from core.utils import (
     init_wandb,
     init_seed,
     save_code_snapshot,
-    print_env_info,
 )
 
 
@@ -17,7 +16,6 @@ class Trainer:
         print("Running loop")
 
     def _init_train(self):
-        print_env_info()
         init_seed(self.config.train.seed, self.config.train.deterministic)
         if self.config.train.save_snapshots:
             save_code_snapshot(self.config.model.name, self._generate_dir_name())

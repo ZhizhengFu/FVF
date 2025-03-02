@@ -12,7 +12,7 @@ uv run hello.py
 FVF/
 ├── configs/
 │   └── model_name.toml
-├── core/
+├── src/
 │   ├── config/
 │   │   └── config.py
 │   ├── data/

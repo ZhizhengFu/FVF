@@ -19,7 +19,7 @@ class GradualWarmupScheduler(LRScheduler):
 def save_code_snapshot(model_name: str, dir_name: str) -> None:
     src_dir = Path("core")
     dst_dir = Path("experiments") / model_name / dir_name
-    for file_path in src_dir.rglob("*"):
+    for file_path in src_dir.rglob("*.py"):
         if file_path.is_file() and "__pycache__" not in file_path.parts:
             destination_path = dst_dir / file_path.relative_to(src_dir)
             destination_path.parent.mkdir(parents=True, exist_ok=True)

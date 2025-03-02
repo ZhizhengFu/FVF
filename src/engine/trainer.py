@@ -1,5 +1,5 @@
-from core.config import Config
-from core.utils import (
+from src.config import Config
+from src.utils import (
     get_cur_time,
     init_wandb,
     init_seed,

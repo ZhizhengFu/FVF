@@ -1,5 +1,5 @@
-from core.config import Config
-from core.engine import Trainer
+from src.config import Config
+from src.engine import Trainer
 
 CONFIG_NAME = "usrnet"
 

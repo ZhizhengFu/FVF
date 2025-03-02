@@ -1,6 +1,6 @@
 import tomllib
 import warnings
-from core.utils import print_env_info
+from src.utils import print_env_info
 
 
 class Config(dict):

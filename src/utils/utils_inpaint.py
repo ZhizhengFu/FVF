@@ -57,7 +57,7 @@ def show_images(images, titles):
 
 
 def main():
-    image_path = "core/utils/test.bmp"
+    image_path = "src/utils/test.bmp"
     image = load_image(image_path)
     mask = create_mask(image.shape, 0.2)
 

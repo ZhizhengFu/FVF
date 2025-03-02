@@ -62,8 +62,10 @@ uv run ruff format
 uv run ruff check
 ```
 
-update package:
+package:
 ```bash
+uv add xxx
+uv remove xxx
 uv lock --upgrade
 ```
 

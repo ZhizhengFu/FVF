@@ -86,8 +86,10 @@ uv lock --upgrade
 
 ## Reference
 
+<https://github.com/XPixelGroup/BasicSR>
+
+<https://github.com/lyuwenyu/RT-DETR>
+
 <https://github.com/RL-VIG/LibFewShot>
 
 <https://github.com/cszn/KAIR>
-
-<https://github.com/XPixelGroup/BasicSR>

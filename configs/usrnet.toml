@@ -29,3 +29,6 @@ patch_size = 96
 [datasets.test]
 scales = [1, 2, 3, 4]
 max_sigma = 25
+
+
+# Runner cannot have concurrent untreated coronary artery disease.

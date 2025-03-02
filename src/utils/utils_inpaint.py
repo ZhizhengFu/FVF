@@ -2,16 +2,20 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def load_image(path):
     image = cv2.imread(path, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image.astype(np.float32) / 255.0
 
+
 def create_mask(shape, ratio):
     return np.random.rand(*shape[:2]) < ratio
 
+
 def apply_mask(image, mask):
     return image * mask[:, :, None]
+
 
 def shepard_interpolation(image, mask, window=9, p=2):
     h, w, _ = image.shape
@@ -32,7 +36,7 @@ def shepard_interpolation(image, mask, window=9, p=2):
         if valid_coords.size == 0:
             continue
 
-        distances = np.linalg.norm(valid_coords + [i_min, j_min] - [i, j], axis=1)**p
+        distances = np.linalg.norm(valid_coords + [i_min, j_min] - [i, j], axis=1) ** p
         weights = 1.0 / np.maximum(distances, 1e-6)
         weights /= weights.sum()
 
@@ -40,25 +44,30 @@ def shepard_interpolation(image, mask, window=9, p=2):
 
     return np.clip(output, 0, 1)
 
+
 def show_images(images, titles):
     plt.figure(figsize=(12, 6))
     for i, (img, title) in enumerate(zip(images, titles)):
         plt.subplot(1, len(images), i + 1)
         plt.imshow(img)
         plt.title(title)
-        plt.axis('off')
+        plt.axis("off")
     plt.tight_layout()
     plt.show()
 
+
 def main():
-    image_path = 'core/utils/test.bmp'
+    image_path = "core/utils/test.bmp"
     image = load_image(image_path)
     mask = create_mask(image.shape, 0.2)
 
     masked_image = apply_mask(image, mask)
     interpolated_image = shepard_interpolation(masked_image, mask)
 
-    show_images([masked_image, interpolated_image], ['Masked Image', 'Interpolated Image'])
+    show_images(
+        [masked_image, interpolated_image], ["Masked Image", "Interpolated Image"]
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

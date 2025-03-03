@@ -69,20 +69,6 @@ uv remove xxx
 uv lock --upgrade
 ```
 
-## TODO list:
-
-- [x] Basic file structure
-- [x] Toml config file design
-- [x] wandb settings
-- [x] uv environment
-  - [x] torch / torch vision
-- [x] ruff
-- [x] init seed / wandb
-- [ ] logger
-- [ ] save model
-- [ ] multi-GPU
-- [ ] multi_model support
-  - [ ] config file design
 
 ## Reference
 

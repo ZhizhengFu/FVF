@@ -1,89 +1,65 @@
-import numpy as np
-import torch
-import torch.nn as nn
 import cv2
-import matplotlib.pyplot as plt
+import numpy as np
+from pathlib import Path
+from typing import Tuple
+from numpy.typing import NDArray
+from .utils_img import imshow, imread_uint
 
 
-def dm(imgs):
-    """bilinear demosaicking
-    Args:
-        imgs: Nx4xW/2xH/2
-    Returns:
-        output: Nx3xWxH
+def mosaic_CFA_Bayer_pipeline(
+    image: NDArray[np.uint8], pattern: str = "RGGB", method: str = "EA"
+) -> Tuple[NDArray[np.uint8], NDArray[np.uint8], NDArray[np.uint8]]:
     """
-    k_r = 1 / 4 * torch.FloatTensor([[1, 2, 1], [2, 4, 2], [1, 2, 1]]).type_as(imgs)
-    k_g = 1 / 4 * torch.FloatTensor([[0, 1, 0], [1, 4, 1], [0, 1, 0]]).type_as(imgs)
-    k = torch.stack((k_r, k_g, k_r), dim=0).unsqueeze(1)
+    Combines Bayer CFA (Color Filter Array) mosaicing and demosaicing into a single pipeline.
 
-    rgb = torch.zeros(imgs.size(0), 3, imgs.size(2) * 2, imgs.size(3) * 2).type_as(imgs)
-    rgb[:, 0, 0::2, 0::2] = imgs[:, 0, :, :]
-    rgb[:, 1, 0::2, 1::2] = imgs[:, 1, :, :]
-    rgb[:, 1, 1::2, 0::2] = imgs[:, 2, :, :]
-    rgb[:, 2, 1::2, 1::2] = imgs[:, 3, :, :]
+    Args:
+        image (np.ndarray): The input image to process.
+        pattern (str, optional): The Bayer pattern to use (e.g., 'RGGB', 'BGGR'). Defaults to "RGGB".
+        method (str, optional): The demosaicing method to use ('EA' for Edge-Aware, 'VNG' for Variable Number of Gradients). Defaults to "EA".
 
-    rgb = nn.functional.pad(rgb, (1, 1, 1, 1), mode="circular")
-    rgb = nn.functional.conv2d(rgb, k, groups=3, padding=0, bias=None)
+    Returns:
+        Tuple[NDArray[np.uint8], NDArray[np.uint8], NDArray[np.uint8]]: A tuple containing the mosaiced image, demosaicked image, and mask.
+    """
+    if pattern not in {"RGGB", "BGGR", "GRBG", "GBRG"}:
+        raise ValueError(
+            "Invalid Bayer pattern. Use 'RGGB', 'BGGR', 'GRBG', or 'GBRG'."
+        )
 
-    return rgb
+    if method not in {"EA", "VNG"}:
+        raise ValueError("Invalid demosaicing method. Use 'EA' or 'VNG'.")
+
+    mask = np.zeros((*image.shape[:2], 3), dtype=np.uint8)
+    positions = [(0, 0), (0, 1), (1, 0), (1, 1)]
+    channels = "RGB"
+
+    for channel, (y, x) in zip(pattern, positions):
+        idx = channels.index(channel)
+        mask[y::2, x::2, idx] = True
+
+    mosaiced_image = image * mask
+    CFA = mosaiced_image.sum(axis=2).astype(np.uint8)
+
+    method_map = {
+        "EA": cv2.COLOR_BAYER_BG2RGB_EA,
+        "VNG": cv2.COLOR_BAYER_BG2RGB_VNG,
+    }
+
+    demosaicked_image = cv2.cvtColor(CFA, method_map[method])
+
+    return mosaiced_image, demosaicked_image, mask * 255
 
 
-def mosaic_CFA_Bayer(RGB):
-    R_m, G_m, B_m = masks_CFA_Bayer(RGB.shape[0:2])
-    mask = np.concatenate(
-        (R_m[..., np.newaxis], G_m[..., np.newaxis], B_m[..., np.newaxis]), axis=-1
+def main():
+    img_path = Path("src/utils/test.bmp")
+    image = imread_uint(img_path)
+    mosaiced_image, demosaicked_image, mask = mosaic_CFA_Bayer_pipeline(
+        image, pattern="RGGB", method="EA"
     )
-    mosaic = np.multiply(mask, RGB)  # mask*RGB
-    CFA = mosaic.sum(2).astype(np.uint8)
-
-    CFA4 = np.zeros((RGB.shape[0] // 2, RGB.shape[1] // 2, 4), dtype=np.uint8)
-    CFA4[:, :, 0] = CFA[0::2, 0::2]
-    CFA4[:, :, 1] = CFA[0::2, 1::2]
-    CFA4[:, :, 2] = CFA[1::2, 0::2]
-    CFA4[:, :, 3] = CFA[1::2, 1::2]
-
-    return CFA, CFA4, mosaic, mask
+    imshow(
+        [mosaiced_image, demosaicked_image, mask],
+        ["Mosaiced Image", "Demosaicked Image", "Bayer Mask"],
+    )
 
 
-def masks_CFA_Bayer(shape):
-    pattern = "RGGB"
-    channels = dict((channel, np.zeros(shape)) for channel in "RGB")
-    for channel, (y, x) in zip(pattern, [(0, 0), (0, 1), (1, 0), (1, 1)]):
-        channels[channel][y::2, x::2] = 1
-    return tuple(channels[c].astype(bool) for c in "RGB")
-
-
-# Load and process the image
-Im = cv2.imread("src/utils/test.bmp", cv2.IMREAD_COLOR)
-Im = cv2.cvtColor(Im, cv2.COLOR_BGR2RGB)
-
-# Get mosaic and CFA
-CFA, CFA4, mosaic, mask = mosaic_CFA_Bayer(Im)
-
-# Convert CFA4 to a 4D tensor
-CFA4_tensor = torch.from_numpy(CFA4).float().permute(2, 0, 1).unsqueeze(0) / 255.0
-
-# Demosaicking using the function
-demosaicked_image = dm(CFA4_tensor)
-
-# Convert the tensor back to numpy for visualization
-demosaicked_image_np = (
-    demosaicked_image.squeeze(0).permute(1, 2, 0).cpu().detach().numpy()
-)
-
-# Display images using matplotlib
-fig, axes = plt.subplots(1, 4, figsize=(20, 5))
-axes[0].imshow(CFA)
-axes[0].set_title("CFA")
-axes[1].imshow(mosaic)
-axes[1].set_title("Mosaic")
-axes[2].imshow(mask.astype(np.float32))
-axes[2].set_title("Mask")
-axes[3].imshow(demosaicked_image_np)
-axes[3].set_title("Demosaicked Image")
-
-# Remove axes for clarity
-for ax in axes:
-    ax.axis("off")
-
-plt.show()
+if __name__ == "__main__":
+    main()

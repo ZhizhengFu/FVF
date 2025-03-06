@@ -4,12 +4,20 @@ import torch
 import wandb
 import shutil
 import random
-import datetime
 import torchvision
 import numpy as np
+from typing import Dict
 from pathlib import Path
-from textwrap import dedent
+from datetime import datetime
+from itertools import zip_longest
 from torch.optim.lr_scheduler import LRScheduler
+
+
+COLOR_RED = "\033[31m"
+COLOR_GREEN = "\033[32m"
+COLOR_YELLOW = "\033[33m"
+COLOR_BLUE = "\033[34m"
+COLOR_RESET = "\033[0m"
 
 
 class GradualWarmupScheduler(LRScheduler):
@@ -28,7 +36,7 @@ def save_code_snapshot(model_name: str, dir_name: str) -> None:
 
 
 def get_cur_time() -> str:
-    return datetime.datetime.now().strftime("%y%m%d_%H%M%S")
+    return datetime.now().strftime("%y%m%d_%H%M%S")
 
 
 def init_wandb(project: str, name: str) -> None:
@@ -46,22 +54,71 @@ def init_seed(seed: int = 0, deterministic: bool = False) -> None:
     torch.backends.cudnn.deterministic = deterministic
 
 
+def get_time_components(delta) -> Dict[str, int]:
+    total_seconds = delta.total_seconds()
+
+    days = delta.days
+    years, days = divmod(days, 365)
+    months, days = divmod(days, 30)
+
+    hours, remainder = divmod(total_seconds % 86400, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return {
+        "years": int(years),
+        "months": int(months),
+        "days": int(days),
+        "hours": int(hours),
+        "minutes": int(minutes),
+        "seconds": int(seconds),
+    }
+
+
+def format_duration(components: Dict[str, int]) -> str:
+    return " ".join(f"{value}{unit}" for unit, value in components.items() if value > 0)
+
+
 def print_env_info() -> None:
-    msg = r"""
-    ████████╗  ██╗   ██╗  ████████╗
-    ██╔═════╝  ██║   ██║  ██╔═════╝
-    █████╗     ██║   ██║  █████╗
-    ██╔══╝     ╚██╗ ██╔╝  ██╔══╝
-    ██║         ╚████╔╝   ██║
-    ╚═╝          ╚═══╝    ╚═╝
-    """
-    msg += dedent(f"""
-        Version Information:
-            PyTorch: {torch.__version__}
-            TorchVision: {torchvision.__version__}
-            Python: {sys.version}
-    """)
-    print(msg)
+    time_since_first_commit = datetime.now() - datetime(2025, 1, 24, 0, 42, 0)
+    time_components = get_time_components(time_since_first_commit)
+
+    versions = {
+        "PyTorch": torch.__version__,
+        "TorchVision": torchvision.__version__,
+        "Python": sys.version.split()[0],
+    }
+
+    logo = [
+        "\n    ████████╗  ██╗   ██╗  ████████╗",
+        "    ██╔═════╝  ██║   ██║  ██╔═════╝",
+        "    █████╗     ██║   ██║  █████╗",
+        "    ██╔══╝     ╚██╗ ██╔╝  ██╔══╝",
+        "    ██║         ╚████╔╝   ██║",
+        "    ╚═╝          ╚═══╝    ╚═╝",
+    ]
+
+    version_info = "\n".join(
+        ["\tVersion Information:"]
+        + [
+            f"\t{name}: {COLOR_GREEN}{ver}{COLOR_RESET}"
+            for name, ver in versions.items()
+        ]
+    )
+
+    time_info = (
+        f"It's been this long since the {COLOR_GREEN}FVF{COLOR_RESET}'s first commit:\n"
+        f"{format_duration(time_components)}"
+    )
+
+    max_logo_width = max(map(len, logo)) + 4
+    combined = [
+        f"{COLOR_YELLOW}{logo_line.ljust(max_logo_width)}{COLOR_RESET}{text_line}"
+        for logo_line, text_line in zip_longest(
+            logo, f"{version_info}\n\n{time_info}".split("\n"), fillvalue=""
+        )
+    ]
+
+    print("\n".join(combined))
 
 
 if __name__ == "__main__":

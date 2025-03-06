@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from .utils_img import imshow, imread_uint
 
 
-def create_mask(shape: Tuple[int, ...], ratio: float) -> NDArray[np.uint8]:
+def create_inpaint_mask(shape: Tuple[int, ...], ratio: float) -> NDArray[np.uint8]:
     """
     Creates a binary mask of the specified shape with a given ratio of ones.
 
@@ -25,7 +25,9 @@ def create_mask(shape: Tuple[int, ...], ratio: float) -> NDArray[np.uint8]:
     return (np.random.rand(*shape) < ratio).astype(np.uint8)
 
 
-def apply_mask(image: NDArray[np.uint8], mask: NDArray[np.uint8]) -> NDArray[np.uint8]:
+def apply_inpaint_mask(
+    image: NDArray[np.uint8], mask: NDArray[np.uint8]
+) -> NDArray[np.uint8]:
     """
     Applies a binary mask to an image, masking out the pixels where the mask is zero.
 
@@ -90,8 +92,8 @@ def inpaint_process(
         Dict[str, NDArray[np.uint8]]: A dictionary containing the masked image,
                                       inpainted image, and the mask used.
     """
-    mask = create_mask(image.shape[:2], ratio)
-    masked_image = apply_mask(image, mask)
+    mask = create_inpaint_mask(image.shape[:2], ratio)
+    masked_image = apply_inpaint_mask(image, mask)
     inpainted_image = inpaint_image(masked_image, mask, method)
 
     mask = np.repeat(mask[..., np.newaxis], 3, axis=-1)
@@ -104,9 +106,6 @@ def inpaint_process(
 
 
 def main():
-    """
-    Main function to demonstrate the inpainting process on a test image.
-    """
     img_path = Path("src/utils/test.bmp")
     image = imread_uint(img_path)
     masked_image, inpainted_image, mask = inpaint_process(

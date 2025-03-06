@@ -1,72 +1,118 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+from typing import Tuple, Dict
+from pathlib import Path
+from numpy.typing import NDArray
+from .utils_img import imshow, imread_uint
 
 
-def load_image(path):
-    image = cv2.imread(path, cv2.IMREAD_COLOR)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return image.astype(np.float32) / 255.0
+def create_mask(shape: Tuple[int, ...], ratio: float) -> NDArray[np.uint8]:
+    """
+    Creates a binary mask of the specified shape with a given ratio of ones.
+
+    Args:
+        shape (Tuple[int, ...]): The shape of the mask to be created.
+        ratio (float): The ratio of the mask that should be ones (between 0 and 1).
+
+    Returns:
+        NDArray[np.uint8]: A binary mask with values 0 or 1.
+
+    Raises:
+        ValueError: If the ratio is not between 0 and 1.
+    """
+    if not (0.0 <= ratio <= 1.0):
+        raise ValueError("Masking ratio must be between 0 and 1.")
+    return (np.random.rand(*shape) < ratio).astype(np.uint8)
 
 
-def create_mask(shape, ratio):
-    return np.random.rand(*shape[:2]) < ratio
+def apply_mask(image: NDArray[np.uint8], mask: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    """
+    Applies a binary mask to an image, masking out the pixels where the mask is zero.
+
+    Args:
+        image (NDArray[np.uint8]): The input image to be masked.
+        mask (NDArray[np.uint8]): The binary mask to apply to the image.
+
+    Returns:
+        NDArray[np.uint8]: The masked image.
+
+    Raises:
+        ValueError: If the image and mask shapes do not match.
+    """
+    if image.shape[:2] != mask.shape:
+        raise ValueError("Image and mask shapes must match.")
+    return image * mask[..., np.newaxis]
 
 
-def apply_mask(image, mask):
-    return image * mask[:, :, None]
+def inpaint_image(
+    image: NDArray[np.uint8], mask: NDArray[np.uint8], method: str = "NS"
+) -> NDArray[np.uint8]:
+    """
+    Inpaints the masked regions of an image using the specified inpainting method.
+
+    Args:
+        image (NDArray[np.uint8]): The input image with masked regions.
+        mask (NDArray[np.uint8]): The binary mask indicating the regions to inpaint.
+        method (str, optional): The inpainting method to use. Options are 'NS' (Navier-Stokes)
+                                or 'TELEA' (Telea's method). Defaults to "NS".
+
+    Returns:
+        NDArray[np.uint8]: The inpainted image.
+
+    Raises:
+        ValueError: If an invalid inpainting method is provided.
+    """
+    method_map = {"NS": cv2.INPAINT_NS, "TELEA": cv2.INPAINT_TELEA}
+    if method not in method_map:
+        raise ValueError("Invalid inpainting method. Use 'NS' or 'TELEA'.")
+
+    inpainted = cv2.inpaint(
+        image,
+        (1 - mask),
+        inpaintRadius=3,
+        flags=method_map[method],
+    )
+    return inpainted.astype(np.uint8)
 
 
-def shepard_interpolation(image, mask, window=9, p=2):
-    h, w, _ = image.shape
-    output = np.copy(image)
+def inpaint_process(
+    image: NDArray[np.uint8], ratio: float = 0.2, method: str = "NS"
+) -> Dict[str, NDArray[np.uint8]]:
+    """
+    Processes an image by creating a mask, applying it, and then inpainting the masked regions.
 
-    y, x = np.where(mask == 0)
+    Args:
+        image (NDArray[np.uint8]): The input image to process.
+        ratio (float, optional): The ratio of the image to mask out. Defaults to 0.2.
+        method (str, optional): The inpainting method to use. Defaults to "NS".
 
-    for i, j in zip(y, x):
-        i_min, i_max = max(0, i - window // 2), min(h, i + window // 2 + 1)
-        j_min, j_max = max(0, j - window // 2), min(w, j + window // 2 + 1)
+    Returns:
+        Dict[str, NDArray[np.uint8]]: A dictionary containing the masked image,
+                                      inpainted image, and the mask used.
+    """
+    mask = create_mask(image.shape[:2], ratio)
+    masked_image = apply_mask(image, mask)
+    inpainted_image = inpaint_image(masked_image, mask, method)
 
-        local_pixels = image[i_min:i_max, j_min:j_max]
-        local_mask = mask[i_min:i_max, j_min:j_max]
+    mask = np.repeat(mask[..., np.newaxis], 3, axis=-1)
 
-        valid_coords = np.argwhere(local_mask)
-        valid_pixels = local_pixels[local_mask.astype(bool)]
-
-        if valid_coords.size == 0:
-            continue
-
-        distances = np.linalg.norm(valid_coords + [i_min, j_min] - [i, j], axis=1) ** p
-        weights = 1.0 / np.maximum(distances, 1e-6)
-        weights /= weights.sum()
-
-        output[i, j] = np.dot(weights, valid_pixels)
-
-    return np.clip(output, 0, 1)
-
-
-def show_images(images, titles):
-    plt.figure(figsize=(12, 6))
-    for i, (img, title) in enumerate(zip(images, titles)):
-        plt.subplot(1, len(images), i + 1)
-        plt.imshow(img)
-        plt.title(title)
-        plt.axis("off")
-    plt.tight_layout()
-    plt.show()
+    return {
+        "masked_image": masked_image,
+        "inpaint_image": inpainted_image,
+        "mask": mask,
+    }
 
 
 def main():
-    image_path = "src/utils/test.bmp"
-    image = load_image(image_path)
-    mask = create_mask(image.shape, 0.2)
-
-    masked_image = apply_mask(image, mask)
-    interpolated_image = shepard_interpolation(masked_image, mask)
-
-    show_images(
-        [masked_image, interpolated_image], ["Masked Image", "Interpolated Image"]
-    )
+    """
+    Main function to demonstrate the inpainting process on a test image.
+    """
+    img_path = Path("src/utils/test.bmp")
+    image = imread_uint(img_path)
+    masked_image, inpainted_image, mask = inpaint_process(
+        image, ratio=0.2, method="NS"
+    ).values()
+    imshow([masked_image, inpainted_image], ["Masked Image", "NS Inpainting"])
 
 
 if __name__ == "__main__":

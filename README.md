@@ -52,6 +52,7 @@ uv sync --extra cu124
 run the code:
 ```bash
 uv run hello.py
+uv run -m src.utils.utils_inpaint
 ```
 
 code format:

@@ -3,7 +3,7 @@ import numpy as np
 from typing import Tuple
 from pathlib import Path
 from numpy.typing import NDArray
-from .utils_img import imshow, imread_uint
+from .utils_image import imshow, imread_uint
 
 
 def inpaint_pipeline(

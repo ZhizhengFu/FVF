@@ -21,6 +21,39 @@ def p2o(psf: Tensor, shape: tuple[int, int]) -> Tensor:
     return torch.fft.fftn(otf, dim=(-2, -1))
 
 
+def upsample(x, sf=3):
+    """s-fold upsampler
+    Upsampling the spatial size by filling the new entries with zeros
+    x: tensor image, NxCxWxH
+    """
+    st = 0
+    z = torch.zeros((x.shape[0], x.shape[1], x.shape[2] * sf, x.shape[3] * sf)).type_as(
+        x
+    )
+    z[..., st::sf, st::sf].copy_(x)
+    return z
+
+
+def pre_calculate(x, k, sf):
+    """
+    Args:
+        x: NxCxHxW, LR input
+        k: NxCxhxw
+        sf: integer
+
+    Returns:
+        FB, FBC, F2B, FBFy
+        will be reused during iterations
+    """
+    w, h = x.shape[-2:]
+    FB = p2o(k, (w * sf, h * sf))
+    FBC = torch.conj(FB)
+    F2B = torch.pow(torch.abs(FB), 2)
+    STy = upsample(x, sf=sf)
+    FBFy = FBC * torch.fft.fftn(STy, dim=(-2, -1))
+    return FB, FBC, F2B, FBFy
+
+
 def main():
     psf = torch.rand(1, 1, 256, 256)
     shape = (512, 512)

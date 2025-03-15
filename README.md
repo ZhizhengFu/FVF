@@ -28,8 +28,6 @@ uv run -m src.utils.utils_inpaint
 code format:
 ```bash
 uv run ruff format
-```
-```bash
 uv run ruff check
 ```
 

@@ -1,0 +1,41 @@
+[project]
+name = "fvf"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.1",
+    "opencv-python>=4.11.0.86",
+    "wandb>=0.19.5",
+]
+
+[project.optional-dependencies]
+cpu = ["torch>=2.5.1", "torchvision>=0.20.1"]
+cu124 = ["torch>=2.5.1", "torchvision>=0.20.1"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cu124" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu124", extra = "cu124" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu124", extra = "cu124" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[dependency-groups]
+dev = ["ruff>=0.9.4"]

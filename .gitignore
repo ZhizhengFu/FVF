@@ -1,0 +1,7 @@
+__pycache__
+.DS_Store
+.ropeproject
+.ruff_cache
+.venv
+wandb
+experiments/*

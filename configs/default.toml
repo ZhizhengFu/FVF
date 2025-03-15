@@ -1,0 +1,31 @@
+[model]
+name = "usrnet"
+pretrained_path = ""
+
+[train]
+save_snapshots = false
+epochs = 100000
+batch_size = 32
+lr = 1e-4
+n_gpu = [0]
+seed = 42
+deterministic = false
+checkpoint_save = 1000
+checkpoint_test = 1000
+
+[train.wandb]
+is_enabled = false
+project = "usrnet"
+
+[datasets]
+train_path = ""
+test_path = ""
+
+[datasets.train]
+scales = [1, 2, 3, 4]
+max_sigma = 25
+patch_size = 96
+
+[datasets.test]
+scales = [1, 2, 3, 4]
+max_sigma = 25

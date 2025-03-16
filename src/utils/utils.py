@@ -6,16 +6,28 @@ import shutil
 import random
 import torchvision
 import numpy as np
+from enum import Enum
 from typing import Dict
 from pathlib import Path
 from datetime import datetime
 from itertools import zip_longest
 
-COLOR_RED = "\033[31m"
-COLOR_GREEN = "\033[32m"
-COLOR_YELLOW = "\033[33m"
-COLOR_BLUE = "\033[34m"
-COLOR_RESET = "\033[0m"
+
+class DegradationType(Enum):
+    INPAINTING = 0
+    MOSAIC = 1
+    SISR = 2
+
+
+class Color(Enum):
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    RESET = "\033[0m"
+
+    def apply(self, text: str) -> str:
+        return f"{self.value}{text}{Color.RESET.value}"
 
 
 def save_code_snapshot(model_name: str, dir_name: str) -> None:
@@ -93,20 +105,17 @@ def print_env_info() -> None:
 
     version_info = "\n".join(
         ["\tVersion Information:"]
-        + [
-            f"\t{name}: {COLOR_GREEN}{ver}{COLOR_RESET}"
-            for name, ver in versions.items()
-        ]
+        + [f"\t{name}: {Color.GREEN.apply(ver)}" for name, ver in versions.items()]
     )
 
     time_info = (
-        f"It's been this long since the {COLOR_GREEN}FVF{COLOR_RESET}'s first commit:\n"
+        f"It's been this long since the {Color.GREEN.apply('FVF')}'s first commit:\n"
         f"{_format_duration(time_components)}"
     )
 
     max_logo_width = max(map(len, logo)) + 4
     combined = [
-        f"{COLOR_YELLOW}{logo_line.ljust(max_logo_width)}{COLOR_RESET}{text_line}"
+        f"{Color.YELLOW.apply(logo_line.ljust(max_logo_width))}{text_line}"
         for logo_line, text_line in zip_longest(
             logo, f"{version_info}\n\n{time_info}".split("\n"), fillvalue=""
         )

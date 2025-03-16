@@ -5,7 +5,7 @@ pretrained_path = ""
 [train]
 save_snapshots = false
 epochs = 100000
-batch_size = 32
+
 lr = 1e-4
 n_gpu = [0]
 seed = 42
@@ -18,14 +18,21 @@ is_enabled = false
 project = "usrnet"
 
 [datasets]
-train_path = ""
-test_path = ""
+batch_size = 32
+shuffle = true
+num_workers = 4
 
 [datasets.train]
+mode = "train"
+root_dir = ""
+
+
 scales = [1, 2, 3, 4]
 max_sigma = 25
 patch_size = 96
 
 [datasets.test]
+mode = "test"
+root_dir = ""
 scales = [1, 2, 3, 4]
 max_sigma = 25

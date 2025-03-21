@@ -1,11 +1,9 @@
 import cv2
 import torch
 import numpy as np
-from typing import Tuple
 from pathlib import Path
 from numpy.typing import NDArray
-from .utils import DegradationType
-from .utils_image import uint2tensor
+from .utils_image import uint2tensor, DegradationOutput
 
 
 def mosaic_CFA_Bayer_pipeline(
@@ -13,19 +11,7 @@ def mosaic_CFA_Bayer_pipeline(
     device: torch.device,
     pattern: str = "RGGB",
     method: str = "EA",
-) -> Tuple[DegradationType, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Combines Bayer CFA (Color Filter Array) mosaicing and demosaicing into a single pipeline.
-
-    Args:
-        image (np.ndarray): The input image to process.
-        pattern (str, optional): The Bayer pattern to use (e.g., 'RGGB', 'BGGR'). Defaults to "RGGB".
-        method (str, optional): The demosaicing method to use ('EA' for Edge-Aware, 'VNG' for Variable Number of Gradients). Defaults to "EA".
-        crop_size (int, optional): The size of the patch for the Edge-Aware method. Defaults to 96.
-
-    Returns:
-        Tuple[NDArray[np.uint8], NDArray[np.uint8], NDArray[np.uint8]]: A tuple containing the mosaiced image, demosaicked image, and mask.
-    """
+) -> DegradationOutput:
     if pattern not in {"RGGB", "BGGR", "GRBG", "GBRG"}:
         raise ValueError(
             "Invalid Bayer pattern. Use 'RGGB', 'BGGR', 'GRBG', or 'GBRG'."
@@ -50,12 +36,11 @@ def mosaic_CFA_Bayer_pipeline(
     L_img_tensor = uint2tensor(L_img).to(device)
     R_img_tensor = uint2tensor(R_img).to(device)
     mask_tensor = uint2tensor(mask, False).to(device)
-    return (
-        DegradationType.MOSAIC,
-        H_img_tensor,
-        L_img_tensor,
-        R_img_tensor,
-        mask_tensor,
+    return DegradationOutput(
+        H_img=H_img_tensor,
+        L_img=L_img_tensor,
+        R_img=R_img_tensor,
+        mask=mask_tensor,
     )
 
 
@@ -64,21 +49,17 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image = imread_uint_3(Path("src/utils/test.png"))
-    type, H_img, L_img, R_img, mask = mosaic_CFA_Bayer_pipeline(
-        image,
-        device,
-        pattern="RGGB",
-        method="EA",
+    mosaic_return = mosaic_CFA_Bayer_pipeline(
+        image, device, pattern="RGGB", method="EA"
     )
     imshow(
         [
-            tensor2float(H_img),
-            tensor2float(L_img),
-            tensor2float(R_img),
-            tensor2float(mask),
+            tensor2float(mosaic_return.H_img),
+            tensor2float(mosaic_return.L_img),
+            tensor2float(mosaic_return.R_img),
+            tensor2float(mosaic_return.mask),
         ]
     )
-    print(H_img.shape, L_img.shape, R_img.shape, mask.shape)
 
 
 if __name__ == "__main__":

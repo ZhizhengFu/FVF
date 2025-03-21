@@ -1,38 +1,36 @@
 [model]
-name = "usrnet"
+name = "defaultnet"
 pretrained_path = ""
 
 [train]
-save_snapshots = false
-epochs = 100000
-
-lr = 1e-4
+save_snapshots = true
+ls_fn = "l1"
 n_gpu = [0]
 seed = 42
 deterministic = false
 checkpoint_save = 1000
 checkpoint_test = 1000
 
+[train.optimizer]
+name = "adam"
+lr = 1e-4
+start_factor = 0.1
+warmup_epochs = 100
+decay_epochs = 1000
+
 [train.wandb]
 is_enabled = false
-project = "usrnet"
+project = "defaultnet"
 
 [datasets]
 batch_size = 32
-shuffle = true
 num_workers = 4
 
 [datasets.train]
-mode = "train"
-root_dir = ""
-
-
-scales = [1, 2, 3, 4]
-max_sigma = 25
-patch_size = 96
+root_dir = "datasets/test/Set14"
+patch_size = 128
+sf = [1, 2, 3, 4]
+sr = [0.2, 0.5]
 
 [datasets.test]
-mode = "test"
-root_dir = ""
-scales = [1, 2, 3, 4]
-max_sigma = 25
+root_dir = "datasets/test/Set5"

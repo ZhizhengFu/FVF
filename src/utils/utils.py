@@ -13,12 +13,6 @@ from datetime import datetime
 from itertools import zip_longest
 
 
-class DegradationType(Enum):
-    INPAINTING = 0
-    MOSAIC = 1
-    SISR = 2
-
-
 class Color(Enum):
     RED = "\033[31m"
     GREEN = "\033[32m"
@@ -30,15 +24,15 @@ class Color(Enum):
         return f"{self.value}{text}{Color.RESET.value}"
 
 
-def save_code_snapshot(model_name: str, dir_name: str) -> None:
-    src_dir = Path("core")
+def save_code_snapshot(model_name: str, dir_name: str, config_name: str) -> None:
+    src_dir = Path("src")
     dst_dir = Path("experiments") / model_name / dir_name
     for file_path in src_dir.rglob("*.py"):
         if file_path.is_file() and "__pycache__" not in file_path.parts:
             destination_path = dst_dir / file_path.relative_to(src_dir)
             destination_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(file_path, destination_path)
-    shutil.copy(Path("configs") / f"{model_name}.toml", dst_dir)
+    shutil.copy(Path("configs") / f"{config_name}.toml", dst_dir)
 
 
 def get_cur_time() -> str:
@@ -85,7 +79,7 @@ def _format_duration(components: Dict[str, int]) -> str:
 
 
 def print_env_info() -> None:
-    time_since_first_commit = datetime.now() - datetime(2025, 1, 24, 0, 42, 0)
+    time_since_first_commit = datetime.now() - datetime(2025, 3, 15, 3, 12, 0)
     time_components = _get_time_components(time_since_first_commit)
 
     versions = {

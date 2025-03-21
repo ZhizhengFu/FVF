@@ -1,5 +1,6 @@
 import torch
-from src.config import Config
+
+# from src.config import Config
 from src.engine import Trainer
 
 CONFIG_NAME = "default"
@@ -7,8 +8,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def main():
-    config = Config.from_toml(f"configs/{CONFIG_NAME}.toml")
-    trainer = Trainer(config, device)
+    trainer = Trainer(CONFIG_NAME, device)
     trainer.run_loop()
 
 

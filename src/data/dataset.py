@@ -1,4 +1,5 @@
 import torch
+import torch.utils.data as data
 import random
 import numpy as np
 import albumentations as A
@@ -6,7 +7,6 @@ from typing import List
 from pathlib import Path
 from functools import partial
 from numpy.typing import NDArray
-from torch.utils.data import Dataset
 from src.config import Config
 from src.utils import (
     imread_uint_3,
@@ -17,7 +17,7 @@ from src.utils import (
 )
 
 
-class DefaultDataset(Dataset):
+class DefaultDataset(data.Dataset):
     def __init__(self, opt: Config, mode: str, device: torch.device):
         super().__init__()
         self.opt = opt

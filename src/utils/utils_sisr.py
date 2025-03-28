@@ -1,7 +1,7 @@
 import torch
+import torch.nn.functional as F
 import random
 import numpy as np
-import torch.nn.functional as F
 from pathlib import Path
 from numpy.typing import NDArray
 from .utils_image import uint2tensor, DegradationOutput, KernelSynthesizer
@@ -17,10 +17,10 @@ def sisr_pipeline(
 ) -> DegradationOutput:
     H_img_tensor = uint2tensor(H_img).to(device)
     sigma = (
-        torch.tensor(0.0)
+        torch.tensor(0.0, device=device)
         if torch.randint(0, 9, (1,)).item() == 1
-        else torch.empty(1).uniform_(0, sigma_max / 255.0)
-    ).to(device)
+        else torch.empty(1, device=device).uniform_(0, sigma_max / 255.0)
+    )
     kernel_generator = random.choice(
         [k_synthesizer.gen_gaussian_kernel, k_synthesizer.gen_motion_kernel]
     )
@@ -39,17 +39,21 @@ def sisr_pipeline(
         ..., 0::sf, 0::sf
     ].squeeze()
     L_img_tensor = L_img_tensor + sigma * torch.randn_like(L_img_tensor)
-    R_img_tensor = torch.nn.functional.interpolate(
+    R_img_tensor = F.interpolate(
         L_img_tensor.unsqueeze(0), scale_factor=sf, mode="nearest"
     ).squeeze()
-    H_img_tensor = H_img_tensor[..., : R_img_tensor.shape[-2], : R_img_tensor.shape[-1]]
+    # mask = torch.zeros_like(R_img_tensor, device=device)
+    # mask[...,0::sf,0::sf] = 1
+
     return DegradationOutput(
         H_img=H_img_tensor,
         L_img=L_img_tensor,
         R_img=R_img_tensor,
+        # mask=mask,
         k=k[0],
         sigma=sigma.view([1, 1, 1]),
         sf=sf,
+        sr=1./sf
     )
 
 

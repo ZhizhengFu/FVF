@@ -32,15 +32,18 @@ def mosaic_CFA_Bayer_pipeline(
         "VNG": cv2.COLOR_BAYER_BG2RGB_VNG,
     }
     R_img = cv2.cvtColor(CFA, method_map[method])
+
     H_img_tensor = uint2tensor(H_img).to(device)
     L_img_tensor = uint2tensor(L_img).to(device)
     R_img_tensor = uint2tensor(R_img).to(device)
     mask_tensor = uint2tensor(mask, False).to(device)
+
     return DegradationOutput(
         H_img=H_img_tensor,
         L_img=L_img_tensor,
         R_img=R_img_tensor,
         mask=mask_tensor,
+        # sr=.3333
     )
 
 

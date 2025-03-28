@@ -8,6 +8,7 @@ dependencies = [
     "albumentations>=2.0.5",
     "matplotlib>=3.10.1",
     "opencv-python>=4.11.0.86",
+    "torchmetrics>=1.7.0",
     "wandb>=0.19.5",
 ]
 

@@ -24,9 +24,8 @@ class Color(Enum):
         return f"{self.value}{text}{Color.RESET.value}"
 
 
-def save_code_snapshot(model_name: str, dir_name: str, config_name: str) -> None:
+def save_code_snapshot(dst_dir: Path, config_name: str) -> None:
     src_dir = Path("src")
-    dst_dir = Path("experiments") / model_name / dir_name
     for file_path in src_dir.rglob("*.py"):
         if file_path.is_file() and "__pycache__" not in file_path.parts:
             destination_path = dst_dir / file_path.relative_to(src_dir)

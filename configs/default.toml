@@ -1,9 +1,10 @@
 [model]
 name = "defaultnet"
 pretrained_path = ""
+iter_num = 8
 
 [train]
-save_snapshots = true
+save_snapshots = false
 ls_fn = "l1"
 n_gpu = [0]
 seed = 42
@@ -25,10 +26,11 @@ project = "defaultnet"
 [datasets]
 batch_size = 32
 num_workers = 4
+pin_memory = false
 
 [datasets.train]
 root_dir = "datasets/test/Set14"
-patch_size = 128
+patch_size = 96
 sf = [1, 2, 3, 4]
 sr = [0.2, 0.5]
 

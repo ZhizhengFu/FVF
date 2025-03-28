@@ -1,6 +1,4 @@
 import torch
-
-# from src.config import Config
 from src.engine import Trainer
 
 CONFIG_NAME = "default"

@@ -2,9 +2,12 @@
 name = "defaultnet"
 pretrained_path = ""
 iter_num = 8
+init_type = "orthogonal"
+init_bn_type = "uniform"
+gain = 0.2
 
 [train]
-save_snapshots = false
+save_snapshots = true
 ls_fn = "l1"
 n_gpu = [0]
 seed = 42
@@ -20,19 +23,22 @@ warmup_epochs = 100
 decay_epochs = 1000
 
 [train.wandb]
-is_enabled = false
+is_enabled = true
 project = "defaultnet"
 
 [datasets]
-batch_size = 32
-num_workers = 4
+batch_size = 24
+num_workers = 0
 pin_memory = false
 
 [datasets.train]
-root_dir = "datasets/test/Set14"
+root_dir = "/home/test/data/trainH/trainH2"
 patch_size = 96
 sf = [1, 2, 3, 4]
 sr = [0.2, 0.5]
+
+[datasets.val]
+root_dir = "/home/test/fuzz/code/USRNext/testsets/imagenet_val_100"
 
 [datasets.test]
 root_dir = "datasets/test/Set5"

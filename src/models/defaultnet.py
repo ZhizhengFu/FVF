@@ -60,7 +60,7 @@ class defaultnet(nn.Module):
         FCK, F2K = torch.conj(FK), torch.abs(FK) ** 2
         # [todo] SHy = input.R_img*input.mask
         SHy = torch.zeros_like(input.R_img)
-        SHy[..., 0::input.sf, 0::input.sf] = input.L_img
+        SHy[..., 0 :: input.sf, 0 :: input.sf] = input.L_img
         FCKFSHy = FCK * fft2(SHy)
         return FK, FCK, F2K, FCKFSHy
 
@@ -68,9 +68,16 @@ class defaultnet(nn.Module):
         FK, FCK, F2K, FCKFSHy = self.prepare_frequency_components(input)
         for i in range(self.opt.iter_num):
             ab = self.h(
-                torch.cat((input.sigma,torch.tensor(input.sr).type_as(input.sigma).expand_as(input.sigma),
+                torch.cat(
+                    (
+                        input.sigma,
+                        torch.tensor(input.sr)
+                        .type_as(input.sigma)
+                        .expand_as(input.sigma),
                         # torch.tensor(i + 1).type_as(input.sigma).expand_as(input.sigma),
-                    ),dim=1,)
+                    ),
+                    dim=1,
+                )
             )
             input.R_img = self.d(
                 input.R_img,
@@ -86,11 +93,11 @@ class defaultnet(nn.Module):
                 torch.cat(
                     (
                         input.R_img,
-                        ab[:, self.opt.iter_num + i : self.opt.iter_num + i + 1, ...]
-                        .unsqueeze(1)
-                        .repeat(1, 1, input.R_img.size(2), input.R_img.size(3)),
+                        ab[
+                            :, self.opt.iter_num + i : self.opt.iter_num + i + 1, ...
+                        ].repeat(1, 1, input.R_img.size(2), input.R_img.size(3)),
                     ),
                     dim=1,
                 )
             )
-        return input
+        return input.R_img

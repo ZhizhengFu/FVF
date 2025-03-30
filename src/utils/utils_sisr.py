@@ -14,15 +14,24 @@ def sisr_pipeline(
     k_synthesizer: KernelSynthesizer = KernelSynthesizer(),
     k_size: int = 25,
     sigma_max: float = 25,
+    remove_random: bool = False,
 ) -> DegradationOutput:
     H_img_tensor = uint2tensor(H_img).to(device)
     sigma = (
-        torch.tensor(0.0, device=device)
-        if torch.randint(0, 9, (1,)).item() == 1
-        else torch.empty(1, device=device).uniform_(0, sigma_max / 255.0)
+        (
+            torch.tensor(0.0, device=device)
+            if torch.randint(0, 9, (1,)).item() == 1
+            else torch.empty(1, device=device).uniform_(0, sigma_max / 255.0)
+        )
+        if not remove_random
+        else torch.tensor(0.0, device=device)
     )
-    kernel_generator = random.choice(
-        [k_synthesizer.gen_gaussian_kernel, k_synthesizer.gen_motion_kernel]
+    kernel_generator = (
+        random.choice(
+            [k_synthesizer.gen_gaussian_kernel, k_synthesizer.gen_motion_kernel]
+        )
+        if not remove_random
+        else k_synthesizer.gen_gaussian_kernel
     )
     k = (
         kernel_generator(k_size)
@@ -53,7 +62,7 @@ def sisr_pipeline(
         k=k[0],
         sigma=sigma.view([1, 1, 1]),
         sf=sf,
-        sr=1./sf
+        sr=1.0 / sf,
     )
 
 

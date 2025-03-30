@@ -59,16 +59,20 @@ class DefaultDataset(data.Dataset):
 
     @staticmethod
     def collate_fn(
-        batch: List[NDArray[np.uint8]], opt: Config, device: torch.device
+        batch: List[NDArray[np.uint8]], opt: Config, mode: str, device: torch.device
     ) -> DegradationOutput:
-        sf = random.choice(opt.sf)
-        sr = random.uniform(opt.sr[0], opt.sr[1])
-        pipeline = random.choice(
-            [
-                lambda img: mosaic_CFA_Bayer_pipeline(img, device),
-                lambda img: sisr_pipeline(img, sf, device),
-                lambda img: inpaint_pipeline(img, sr, device),
-            ]
+        sf = random.choice(opt.sf) if mode == "train" else 3
+        sr = random.uniform(opt.sr[0], opt.sr[1]) if mode == "train" else 1.0 / sf
+        pipeline = (
+            random.choice(
+                [
+                    lambda img: mosaic_CFA_Bayer_pipeline(img, device),
+                    lambda img: sisr_pipeline(img, sf, device),
+                    lambda img: inpaint_pipeline(img, sr, device),
+                ]
+            )
+            if mode == "train"
+            else lambda img: sisr_pipeline(img, sf, device, remove_random=True)
         )
         outputs = [pipeline(img) for img in batch]
 
@@ -93,4 +97,6 @@ class DefaultDataset(data.Dataset):
         )
 
     def get_collate_fn(self):
-        return partial(self.collate_fn, opt=self.opt, device=self.device)
+        return partial(
+            self.collate_fn, opt=self.opt, mode=self.mode, device=self.device
+        )

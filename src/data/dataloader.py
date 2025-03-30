@@ -6,16 +6,17 @@ from .dataset import DefaultDataset
 
 
 def get_dataloader(
-    opt: Config, mode: Literal["train", "test"], device: torch.device
+    opt: Config, mode: Literal["train", "val", "test"], device: torch.device
 ) -> data.DataLoader:
-    dataset = (
-        DefaultDataset(opt.train, mode, device)
-        if mode == "train"
-        else DefaultDataset(opt.test, mode, device)
-    )
+    if mode == "train":
+        dataset = DefaultDataset(opt.train, mode, device)
+    elif mode == "val":
+        dataset = DefaultDataset(opt.val, mode, device)
+    elif mode == "test":
+        dataset = DefaultDataset(opt.test, mode, device)
     return data.DataLoader(
         dataset,
-        batch_size=opt.batch_size,
+        batch_size=opt.batch_size if mode == "train" else 1,
         pin_memory=opt.pin_memory,
         num_workers=opt.num_workers,
         collate_fn=dataset.get_collate_fn(),

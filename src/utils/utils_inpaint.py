@@ -1,5 +1,4 @@
 import cv2
-import torch
 import numpy as np
 from pathlib import Path
 from numpy.typing import NDArray
@@ -9,7 +8,6 @@ from .utils_image import uint2tensor, DegradationOutput
 def inpaint_pipeline(
     H_img: NDArray[np.uint8],
     sr: float,
-    device: torch.device,
     method: str = "NS",
 ) -> DegradationOutput:
     if not (0.0 <= sr <= 1.0):
@@ -27,10 +25,10 @@ def inpaint_pipeline(
     ).astype(np.uint8)
     mask = np.repeat(mask[..., np.newaxis], 3, axis=-1)
 
-    H_img_tensor = uint2tensor(H_img).to(device)
-    L_img_tensor = uint2tensor(L_img).to(device)
-    R_img_tensor = uint2tensor(R_img).to(device)
-    mask_tensor = uint2tensor(mask, False).to(device)
+    H_img_tensor = uint2tensor(H_img)
+    L_img_tensor = uint2tensor(L_img)
+    R_img_tensor = uint2tensor(R_img)
+    mask_tensor = uint2tensor(mask, False)
 
     return DegradationOutput(
         H_img=H_img_tensor,
@@ -44,9 +42,8 @@ def inpaint_pipeline(
 def main():
     from .utils_image import imread_uint_3, imshow, tensor2float
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image = imread_uint_3(Path("src/utils/test.png"))
-    inpaint_return = inpaint_pipeline(image, 0.2, device, method="NS")
+    inpaint_return = inpaint_pipeline(image, 0.2, method="NS")
     imshow(
         [
             tensor2float(inpaint_return.H_img),

@@ -1,6 +1,5 @@
 from .utils import (
     get_cur_time,
-    init_wandb,
     init_seed,
     save_code_snapshot,
     print_env_info,
@@ -13,7 +12,6 @@ from .utils_image import imread_uint_3, DegradationOutput, SSIM, PSNR
 
 __all__ = [
     "get_cur_time",
-    "init_wandb",
     "init_seed",
     "save_code_snapshot",
     "DegradationOutput",

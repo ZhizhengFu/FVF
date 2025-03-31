@@ -1,5 +1,4 @@
 import cv2
-import torch
 import numpy as np
 from pathlib import Path
 from numpy.typing import NDArray
@@ -8,7 +7,6 @@ from .utils_image import uint2tensor, DegradationOutput
 
 def mosaic_CFA_Bayer_pipeline(
     H_img: NDArray[np.uint8],
-    device: torch.device,
     pattern: str = "RGGB",
     method: str = "EA",
 ) -> DegradationOutput:
@@ -33,10 +31,10 @@ def mosaic_CFA_Bayer_pipeline(
     }
     R_img = cv2.cvtColor(CFA, method_map[method])
 
-    H_img_tensor = uint2tensor(H_img).to(device)
-    L_img_tensor = uint2tensor(L_img).to(device)
-    R_img_tensor = uint2tensor(R_img).to(device)
-    mask_tensor = uint2tensor(mask, False).to(device)
+    H_img_tensor = uint2tensor(H_img)
+    L_img_tensor = uint2tensor(L_img)
+    R_img_tensor = uint2tensor(R_img)
+    mask_tensor = uint2tensor(mask, False)
 
     return DegradationOutput(
         H_img=H_img_tensor,
@@ -50,11 +48,8 @@ def mosaic_CFA_Bayer_pipeline(
 def main():
     from .utils_image import imread_uint_3, imshow, tensor2float
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image = imread_uint_3(Path("src/utils/test.png"))
-    mosaic_return = mosaic_CFA_Bayer_pipeline(
-        image, device, pattern="RGGB", method="EA"
-    )
+    mosaic_return = mosaic_CFA_Bayer_pipeline(image, pattern="RGGB", method="EA")
     imshow(
         [
             tensor2float(mosaic_return.H_img),

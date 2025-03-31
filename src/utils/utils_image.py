@@ -10,29 +10,33 @@ from numpy.typing import NDArray
 from matplotlib import pyplot as plt
 from dataclasses import dataclass, field
 
+
 class PSNR(nn.Module):
     """Peak Signal to Noise Ratio
     img1 and img2 have range [0, 1]"""
+
     def __init__(self, border=0):
         super().__init__()
         self.border = border
 
     def forward(self, img1, img2):
         if not img1.shape == img2.shape:
-            raise ValueError('Input images must have the same dimensions.')
+            raise ValueError("Input images must have the same dimensions.")
 
         if self.border > 0:
-            img1 = img1[..., self.border:-self.border, self.border:-self.border]
-            img2 = img2[..., self.border:-self.border, self.border:-self.border]
+            img1 = img1[..., self.border : -self.border, self.border : -self.border]
+            img2 = img2[..., self.border : -self.border, self.border : -self.border]
 
         mse = torch.mean((img1 - img2) ** 2, dim=[1, 2, 3])
         psnr = -10.0 * torch.log10(mse)
-        psnr = torch.clamp(psnr, min=0.0, max=float('inf'))
+        psnr = torch.clamp(psnr, min=0.0, max=float("inf"))
         return torch.mean(psnr)  # return average PSNR over batch
+
 
 class SSIM(nn.Module):
     """Structural Similarity Index Measure
     img1 and img2 have range [0, 1]"""
+
     def __init__(self, border=0, window_size=11, size_average=True):
         super().__init__()
         self.border = border
@@ -42,8 +46,13 @@ class SSIM(nn.Module):
         self.window = self.create_window(window_size, self.channel)
 
     def gaussian(self, window_size, sigma):
-        gauss = torch.Tensor([math.exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
-        return gauss/gauss.sum()
+        gauss = torch.Tensor(
+            [
+                math.exp(-((x - window_size // 2) ** 2) / float(2 * sigma**2))
+                for x in range(window_size)
+            ]
+        )
+        return gauss / gauss.sum()
 
     def create_window(self, window_size, channel):
         _1D_window = self.gaussian(window_size, 1.5).unsqueeze(1)
@@ -53,16 +62,18 @@ class SSIM(nn.Module):
 
     def forward(self, img1, img2):
         if not img1.shape == img2.shape:
-            raise ValueError('Input images must have the same dimensions.')
+            raise ValueError("Input images must have the same dimensions.")
 
+        if img1.dtype != img2.dtype:
+            img2 = img2.type(img1.dtype)
         if self.border > 0:
-            img1 = img1[..., self.border:-self.border, self.border:-self.border]
-            img2 = img2[..., self.border:-self.border, self.border:-self.border]
+            img1 = img1[..., self.border : -self.border, self.border : -self.border]
+            img2 = img2[..., self.border : -self.border, self.border : -self.border]
 
         if img1.size(1) == 3:  # RGB image
             ssims = []
             for i in range(3):
-                ssim = self._ssim(img1[:, i:i+1, :, :], img2[:, i:i+1, :, :])
+                ssim = self._ssim(img1[:, i : i + 1, :, :], img2[:, i : i + 1, :, :])
                 ssims.append(ssim)
             ssim = torch.stack(ssims, dim=1).mean(1)
         else:  # Grayscale
@@ -79,25 +90,40 @@ class SSIM(nn.Module):
         if channel == self.channel and self.window.dtype == img1.dtype:
             window = self.window.to(img1.device)
         else:
-            window = self.create_window(self.window_size, channel).to(img1.device).type(img1.dtype)
+            window = (
+                self.create_window(self.window_size, channel)
+                .to(img1.device)
+                .type(img1.dtype)
+            )
             self.window = window
             self.channel = channel
 
-        mu1 = F.conv2d(img1, window, padding=self.window_size//2, groups=channel)
-        mu2 = F.conv2d(img2, window, padding=self.window_size//2, groups=channel)
+        mu1 = F.conv2d(img1, window, padding=self.window_size // 2, groups=channel)
+        mu2 = F.conv2d(img2, window, padding=self.window_size // 2, groups=channel)
 
         mu1_sq = mu1.pow(2)
         mu2_sq = mu2.pow(2)
         mu1_mu2 = mu1 * mu2
 
-        sigma1_sq = F.conv2d(img1*img1, window, padding=self.window_size//2, groups=channel) - mu1_sq
-        sigma2_sq = F.conv2d(img2*img2, window, padding=self.window_size//2, groups=channel) - mu2_sq
-        sigma12 = F.conv2d(img1*img2, window, padding=self.window_size//2, groups=channel) - mu1_mu2
+        sigma1_sq = (
+            F.conv2d(img1 * img1, window, padding=self.window_size // 2, groups=channel)
+            - mu1_sq
+        )
+        sigma2_sq = (
+            F.conv2d(img2 * img2, window, padding=self.window_size // 2, groups=channel)
+            - mu2_sq
+        )
+        sigma12 = (
+            F.conv2d(img1 * img2, window, padding=self.window_size // 2, groups=channel)
+            - mu1_mu2
+        )
 
         C1 = 0.01**2
         C2 = 0.03**2
 
-        ssim_map = ((2*mu1_mu2 + C1)*(2*sigma12 + C2)) / ((mu1_sq + mu2_sq + C1)*(sigma1_sq + sigma2_sq + C2))
+        ssim_map = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) / (
+            (mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2)
+        )
 
         return ssim_map.mean([1, 2, 3])
 
@@ -119,6 +145,7 @@ class DegradationOutput:
         device = self.R_img.device
         self.k = self.k.to(device)
         self.sigma = self.sigma.to(device)
+
 
 class KernelSynthesizer:
     def __init__(

@@ -1,5 +1,6 @@
 import torch
 import torch.utils.data as data
+import multiprocessing
 from typing import Literal
 from src.config import Config
 from .dataset import DefaultDataset
@@ -21,4 +22,5 @@ def get_dataloader(
         num_workers=opt.num_workers,
         collate_fn=dataset.get_collate_fn(),
         shuffle=True if mode == "train" else False,
+        multiprocessing_context=multiprocessing.get_context("spawn"),
     )

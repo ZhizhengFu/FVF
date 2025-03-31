@@ -1,7 +1,6 @@
 import os
 import sys
 import torch
-import wandb
 import shutil
 import random
 import torchvision
@@ -36,10 +35,6 @@ def save_code_snapshot(dst_dir: Path, config_name: str) -> None:
 
 def get_cur_time() -> str:
     return datetime.now().strftime("%y%m%d_%H%M%S")
-
-
-def init_wandb(project: str, name: str) -> None:
-    wandb.init(project=project, name=name)
 
 
 def init_seed(seed: int = 0, deterministic: bool = False) -> None:

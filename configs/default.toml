@@ -12,8 +12,7 @@ ls_fn = "l1"
 n_gpu = [0]
 seed = 42
 deterministic = false
-checkpoint_save = 1000
-checkpoint_test = 1000
+checkpoint_save = 10
 
 [train.optimizer]
 name = "adam"
@@ -23,22 +22,22 @@ warmup_epochs = 100
 decay_epochs = 1000
 
 [train.wandb]
-is_enabled = true
+is_enabled = false
 project = "defaultnet"
 
 [datasets]
 batch_size = 24
-num_workers = 0
-pin_memory = false
+num_workers = 4
+pin_memory = true
 
 [datasets.train]
-root_dir = "/home/test/data/trainH/trainH2"
+root_dir = "datasets/test/Set14"
 patch_size = 96
 sf = [1, 2, 3, 4]
 sr = [0.2, 0.5]
 
 [datasets.val]
-root_dir = "/home/test/fuzz/code/USRNext/testsets/imagenet_val_100"
+root_dir = "datasets/test/Set14"
 
 [datasets.test]
 root_dir = "datasets/test/Set5"

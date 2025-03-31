@@ -3,7 +3,6 @@ import logging
 from typing import Dict
 from pathlib import Path
 from src.config import Config
-from src.utils import init_wandb
 
 
 class Logger:
@@ -13,7 +12,7 @@ class Logger:
         self._init_file_logging()
         self.wandb_enabled = config.train.wandb.is_enabled
         if self.wandb_enabled:
-            init_wandb(config.train.wandb.project, config.cur_time)
+            wandb.init(project=config.train.wandb.project, name=config.cur_time)
 
     def _init_file_logging(self):
         logging.basicConfig(

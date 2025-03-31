@@ -48,6 +48,9 @@ class Trainer:
             val_loss, val_psnr, val_ssim = self._validate()
 
             test_loss, test_psnr, test_ssim = self._test_model()
+
+            total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.model.parameters()]))
+
             metrics = {
                 "train_loss": train_loss,
                 "train_psnr": train_psnr,
@@ -58,6 +61,7 @@ class Trainer:
                 "test_loss": test_loss,
                 "test_psnr": test_psnr,
                 "test_ssim": test_ssim,
+                "grad_norm": total_norm,
                 "epoch": epoch,
                 "lr": self.optimizer.param_groups[0]["lr"],
             }
@@ -74,7 +78,8 @@ class Trainer:
                 self._save_checkpoint(epoch)
 
             self.scheduler.step()
-            self.logger.finish()
+
+        self.logger.finish()
 
     def _train_epoch(self, epoch: int):
         self.model.train()
@@ -82,13 +87,16 @@ class Trainer:
         totlal_psnr = 0
         total_ssim = 0
         self.logger.log_message(f"Starting epoch {epoch}")
+        scaler = torch.cuda.amp.GradScaler()
 
         for batch_idx, batch in enumerate(self.train_dataloader):
             self.optimizer.zero_grad()
-            output = self.model(batch)
-            loss = self.loss_fn(output, batch.H_img)
-            loss.backward()
-            self.optimizer.step()
+            with torch.cuda.amp.autocast():
+                output = self.model(batch)
+                loss = self.loss_fn(output, batch.H_img)
+            scaler.scale(loss).backward()
+            scaler.step(self.optimizer)
+            scaler.update()
 
             train_loss += loss.item()
             totlal_psnr += self.psnr(output, batch.H_img).item()
@@ -223,92 +231,60 @@ def init_weights(
     gain: float = 0.02,
     verbose: bool = False,
 ) -> None:
-    """Initialize model weights with specified method."""
-
-    # Initialize weight initializers first
-    weight_initializer = _create_weight_initializer(init_type, gain)
-    bn_initializer = _create_bn_initializer(init_bn_type, gain)
-
-    def init_func(m: nn.Module) -> None:
-        """Initialize a single layer based on its type."""
-        if not hasattr(m, "weight"):
-            return
-
+    def init_func(m: nn.Module, gain=0.2) -> None:
         classname = m.__class__.__name__
 
-        if _is_conv_or_linear(classname):
-            weight_initializer(m)
-            _init_bias(m)
+        # Handle conv/linear layers
+        if hasattr(m, "weight") and (
+            classname.find("Conv") != -1 or classname.find("Linear") != -1
+        ):
+            if init_type == "normal":
+                init.normal_(m.weight.data, 0.0, gain)
+            elif init_type == "xavier":
+                init.xavier_normal_(m.weight.data, gain=gain)
+            elif init_type == "xavier_uniform":
+                init.xavier_uniform_(m.weight.data, gain=gain)
+            elif init_type == "kaiming":
+                init.kaiming_normal_(m.weight.data, mode="fan_in", nonlinearity="relu")
+            elif init_type == "orthogonal":
+                # Ensure gain is valid for orthogonal initialization
+                if gain is None:
+                    gain = 1.0  # Default gain for orthogonal init
+                init.orthogonal_(m.weight.data, gain=gain)
+            elif init_type == "ones":
+                init.constant_(m.weight.data, 1.0)
+            elif init_type == "zeros":
+                init.constant_(m.weight.data, 0.0)
+            else:
+                raise NotImplementedError(
+                    f"Initialization method [{init_type}] is not implemented"
+                )
+
+            if hasattr(m, "bias") and m.bias is not None:
+                init.constant_(m.bias.data, 0.0)
+
             if verbose:
                 print(f"Initialized {classname} (weight: {init_type}, bias: zero)")
-        elif _is_batch_norm(classname):
-            bn_initializer(m)
+
+        # Handle batch norm layers
+        elif classname.find("BatchNorm") != -1:
+            if init_bn_type == "uniform":
+                if m.weight is not None:
+                    init.uniform_(m.weight.data, 1.0 - gain, 1.0 + gain)
+                if m.bias is not None:
+                    init.constant_(m.bias.data, 0.0)
+            elif init_bn_type == "constant":
+                if m.weight is not None:
+                    init.constant_(m.weight.data, 1.0)
+                if m.bias is not None:
+                    init.constant_(m.bias.data, 0.0)
+
             if verbose:
                 print(f"Initialized {classname} with {init_bn_type}")
-        elif verbose:
-            print(f"Layer {classname} has weights but no specific initialization")
+
+        # Handle other layers with weights (like Softplus)
+        elif hasattr(m, "weight"):
+            if verbose:
+                print(f"Layer {classname} has weights but no specific initialization")
 
     model.apply(init_func)
-
-
-def _is_conv_or_linear(classname: str) -> bool:
-    """Check if layer is convolutional or linear."""
-    return classname.find("Conv") != -1 or classname.find("Linear") != -1
-
-
-def _is_batch_norm(classname: str) -> bool:
-    """Check if layer is batch normalization."""
-    return classname.find("BatchNorm") != -1
-
-
-def _init_bias(m: nn.Module) -> None:
-    """Initialize bias terms to zero if they exist."""
-    if hasattr(m, "bias") and m.bias is not None:
-        init.constant_(m.bias.data, 0.0)
-
-
-def _create_weight_initializer(init_type: str, gain: float):
-    """Create a weight initializer function for conv/linear layers."""
-    init_methods = {
-        "normal": lambda m: init.normal_(m.weight.data, 0.0, gain),
-        "xavier": lambda m: init.xavier_normal_(m.weight.data, gain=gain),
-        "xavier_uniform": lambda m: init.xavier_uniform_(m.weight.data, gain=gain),
-        "kaiming": lambda m: init.kaiming_normal_(
-            m.weight.data, mode="fan_in", nonlinearity="relu"
-        ),
-        "orthogonal": lambda m: init.orthogonal_(
-            m.weight.data, gain=int(gain) if gain is not None else 1
-        ),
-        "ones": lambda m: init.constant_(m.weight.data, 1.0),
-        "zeros": lambda m: init.constant_(m.weight.data, 0.0),
-    }
-
-    if init_type not in init_methods:
-        raise NotImplementedError(
-            f"Initialization method [{init_type}] is not implemented"
-        )
-
-    return init_methods[init_type]
-
-
-def _create_bn_initializer(init_bn_type: str, gain: float):
-    """Create a batch norm initializer function."""
-
-    def uniform_init(m: nn.Module) -> None:
-        if m.weight is not None:
-            init.uniform_(m.weight.data, 1.0 - gain, 1.0 + gain)
-        if m.bias is not None:
-            init.constant_(m.bias.data, 0.0)
-
-    def constant_init(m: nn.Module) -> None:
-        if m.weight is not None:
-            init.constant_(m.weight.data, 1.0)
-        if m.bias is not None:
-            init.constant_(m.bias.data, 0.0)
-
-    init_methods = {
-        "uniform": uniform_init,
-        "constant": constant_init,
-    }
-
-    return init_methods.get(init_bn_type, lambda _: None)

@@ -6,6 +6,7 @@ import albumentations as A
 from typing import List
 from pathlib import Path
 from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 from numpy.typing import NDArray
 from src.config import Config
 from src.utils import (
@@ -66,22 +67,24 @@ class DefaultDataset(data.Dataset):
         pipeline = (
             random.choice(
                 [
-                    lambda img: mosaic_CFA_Bayer_pipeline(img, device),
-                    lambda img: sisr_pipeline(img, sf, device),
-                    lambda img: inpaint_pipeline(img, sr, device),
+                    lambda img: mosaic_CFA_Bayer_pipeline(img),
+                    lambda img: sisr_pipeline(img, sf),
+                    lambda img: inpaint_pipeline(img, sr),
                 ]
             )
             if mode == "train"
-            else lambda img: sisr_pipeline(img, sf, device, remove_random=True)
+            else lambda img: sisr_pipeline(img, sf, remove_random=True)
         )
-        outputs = [pipeline(img) for img in batch]
 
-        H_img_batch = torch.stack([output.H_img for output in outputs])
-        L_img_batch = torch.stack([output.L_img for output in outputs])
-        R_img_batch = torch.stack([output.R_img for output in outputs])
-        mask_batch = torch.stack([output.mask for output in outputs])
-        k_batch = torch.stack([output.k for output in outputs])
-        sigma_batch = torch.stack([output.sigma for output in outputs])
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            outputs = list(executor.map(pipeline, batch))
+
+        H_img_batch = torch.stack([output.H_img for output in outputs]).to(device)
+        L_img_batch = torch.stack([output.L_img for output in outputs]).to(device)
+        R_img_batch = torch.stack([output.R_img for output in outputs]).to(device)
+        mask_batch = torch.stack([output.mask for output in outputs]).to(device)
+        k_batch = torch.stack([output.k for output in outputs]).to(device)
+        sigma_batch = torch.stack([output.sigma for output in outputs]).to(device)
         sr_batch = outputs[0].sr
         sf_batch = outputs[0].sf
 

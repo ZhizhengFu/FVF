@@ -20,10 +20,10 @@ class Trainer:
     def __init__(self, CONFIG_NAME: str, device: torch.device):
         self.CONFIG_NAME = CONFIG_NAME
         config = Config.from_toml(f"configs/{CONFIG_NAME}.toml")
+        self.opt = config.train
         config.cur_time = get_cur_time()
         self.dst_dir = Path("experiments") / config.model.name / config.cur_time
         self.device = device
-        self.opt = config.train
         self.best_val_loss = float("inf")
         self.psnr = PSNR().to(self.device)
         self.ssim = SSIM().to(self.device)
@@ -36,6 +36,8 @@ class Trainer:
         self.loss_fn = self._init_loss()
         self.optimizer = self._init_optimizer()
         self.scheduler = self._init_scheduler()
+        if config.model.pretrained_path:
+            self.model.load_state_dict(torch.load(config.model.pretrained_path))
 
     def run_loop(self):
         self.logger.log_message(f"Starting training with config: {self.CONFIG_NAME}")
@@ -43,25 +45,17 @@ class Trainer:
         for epoch in range(
             self.opt.optimizer.warmup_epochs + self.opt.optimizer.decay_epochs
         ):
-            train_loss, train_psnr, train_ssim = self._train_epoch(epoch)
-
+            train_loss = self._train_epoch(epoch)
             val_loss, val_psnr, val_ssim = self._validate()
-
             test_loss, test_psnr, test_ssim = self._test_model()
-
-            total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.model.parameters()]))
-
             metrics = {
                 "train_loss": train_loss,
-                "train_psnr": train_psnr,
-                "train_ssim": train_ssim,
                 "val_loss": val_loss,
                 "val_psnr": val_psnr,
                 "val_ssim": val_ssim,
                 "test_loss": test_loss,
                 "test_psnr": test_psnr,
                 "test_ssim": test_ssim,
-                "grad_norm": total_norm,
                 "epoch": epoch,
                 "lr": self.optimizer.param_groups[0]["lr"],
             }
@@ -84,8 +78,6 @@ class Trainer:
     def _train_epoch(self, epoch: int):
         self.model.train()
         train_loss = 0.0
-        totlal_psnr = 0
-        total_ssim = 0
         self.logger.log_message(f"Starting epoch {epoch}")
         scaler = torch.cuda.amp.GradScaler()
 
@@ -97,21 +89,13 @@ class Trainer:
             scaler.scale(loss).backward()
             scaler.step(self.optimizer)
             scaler.update()
-
             train_loss += loss.item()
-            totlal_psnr += self.psnr(output, batch.H_img).item()
-            total_ssim += self.ssim(output, batch.H_img).item()
-
             if batch_idx % 1000 == 0:
                 self.logger.log_message(
-                    f"Epoch {epoch} Batch {batch_idx} Loss: {loss.item():.4f} PSNR: {totlal_psnr / (batch_idx + 1):.4f} SSIM: {total_ssim / (batch_idx + 1):.4f}"
+                    f"Epoch {epoch} Batch {batch_idx} Loss: {loss.item():.4f}"
                 )
 
-        return (
-            train_loss / len(self.train_dataloader),
-            totlal_psnr / len(self.train_dataloader),
-            total_ssim / len(self.train_dataloader),
-        )
+        return train_loss / len(self.train_dataloader)
 
     def _validate(self):
         self.model.eval()
@@ -161,6 +145,7 @@ class Trainer:
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "scheduler_state_dict": self.scheduler.state_dict(),
+            "best_val_loss": self.best_val_loss,
             "epoch": epoch,
         }
         if is_best:
@@ -168,6 +153,32 @@ class Trainer:
         torch.save(
             checkpoint, Path(self.dst_dir / "checkpoint" / f"checkpoint_{epoch}.pth")
         )
+
+    def _load_checkpoint(
+        self,
+        checkpoint_path: str,
+        load_optimizer: bool = True,
+        load_scheduler: bool = True,
+    ) -> int:
+        checkpoint = torch.load(checkpoint_path, map_location=self.device)
+
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+
+        if load_optimizer and "optimizer_state_dict" in checkpoint:
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+        if load_scheduler and "scheduler_state_dict" in checkpoint:
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+
+        epoch = checkpoint.get("epoch", 0)
+
+        self.best_val_loss = checkpoint.get("best_val_loss", float("inf"))
+
+        self.logger.log_message(
+            f"Loaded checkpoint from {checkpoint_path} (epoch {epoch})"
+        )
+
+        return epoch
 
     def _init_train(self) -> None:
         init_seed(self.opt.seed, self.opt.deterministic)
@@ -182,7 +193,7 @@ class Trainer:
             init_type=opt.init_type,
             init_bn_type=opt.init_bn_type,
             gain=opt.init_gain,
-            verbose=True,
+            verbose=False,
         )
         return model
 
@@ -239,29 +250,29 @@ def init_weights(
             classname.find("Conv") != -1 or classname.find("Linear") != -1
         ):
             if init_type == "normal":
-                init.normal_(m.weight.data, 0.0, gain)
+                init.normal_(m.weight.data, 0.0, gain)  # type: ignore[arg-type]
             elif init_type == "xavier":
-                init.xavier_normal_(m.weight.data, gain=gain)
+                init.xavier_normal_(m.weight.data, gain=gain)  # type: ignore[arg-type]
             elif init_type == "xavier_uniform":
-                init.xavier_uniform_(m.weight.data, gain=gain)
+                init.xavier_uniform_(m.weight.data, gain=gain)  # type: ignore[arg-type]
             elif init_type == "kaiming":
-                init.kaiming_normal_(m.weight.data, mode="fan_in", nonlinearity="relu")
+                init.kaiming_normal_(m.weight.data, mode="fan_in", nonlinearity="relu")  # type: ignore[arg-type]
             elif init_type == "orthogonal":
                 # Ensure gain is valid for orthogonal initialization
                 if gain is None:
                     gain = 1.0  # Default gain for orthogonal init
-                init.orthogonal_(m.weight.data, gain=gain)
+                init.orthogonal_(m.weight.data, gain=gain)  # type: ignore[arg-type]
             elif init_type == "ones":
-                init.constant_(m.weight.data, 1.0)
+                init.constant_(m.weight.data, 1.0)  # type: ignore[arg-type]
             elif init_type == "zeros":
-                init.constant_(m.weight.data, 0.0)
+                init.constant_(m.weight.data, 0.0)  # type: ignore[arg-type]
             else:
                 raise NotImplementedError(
                     f"Initialization method [{init_type}] is not implemented"
                 )
 
             if hasattr(m, "bias") and m.bias is not None:
-                init.constant_(m.bias.data, 0.0)
+                init.constant_(m.bias.data, 0.0)  # type: ignore[arg-type]
 
             if verbose:
                 print(f"Initialized {classname} (weight: {init_type}, bias: zero)")
@@ -270,14 +281,14 @@ def init_weights(
         elif classname.find("BatchNorm") != -1:
             if init_bn_type == "uniform":
                 if m.weight is not None:
-                    init.uniform_(m.weight.data, 1.0 - gain, 1.0 + gain)
+                    init.uniform_(m.weight.data, 1.0 - gain, 1.0 + gain)  # type: ignore[arg-type]
                 if m.bias is not None:
-                    init.constant_(m.bias.data, 0.0)
+                    init.constant_(m.bias.data, 0.0)  # type: ignore[arg-type]
             elif init_bn_type == "constant":
                 if m.weight is not None:
-                    init.constant_(m.weight.data, 1.0)
+                    init.constant_(m.weight.data, 1.0)  # type: ignore[arg-type]
                 if m.bias is not None:
-                    init.constant_(m.bias.data, 0.0)
+                    init.constant_(m.bias.data, 0.0)  # type: ignore[arg-type]
 
             if verbose:
                 print(f"Initialized {classname} with {init_bn_type}")

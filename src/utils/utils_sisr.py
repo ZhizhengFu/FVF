@@ -3,8 +3,14 @@ import torch.nn.functional as F
 import random
 import numpy as np
 from pathlib import Path
+from typing import Literal
 from numpy.typing import NDArray
-from .utils_image import uint2tensor, DegradationOutput, KernelSynthesizer
+from .utils_image import (
+    uint2tensor,
+    circular_conv_2d_fft,
+    DegradationOutput,
+    KernelSynthesizer,
+)
 
 
 def sisr_pipeline(
@@ -12,55 +18,33 @@ def sisr_pipeline(
     sf: int,
     k_synthesizer: KernelSynthesizer = KernelSynthesizer(),
     k_size: int = 25,
+    k_type: Literal["gaussian", "motion", None] = None,
+    sigma: float | None = None,
     sigma_max: float = 25,
-    remove_random: bool = False,
 ) -> DegradationOutput:
     H_img_tensor = uint2tensor(H_img)
-    sigma = (
-        (
-            torch.tensor(0.0)
-            if torch.randint(0, 9, (1,)).item() == 1
-            else torch.empty(1).uniform_(0, sigma_max / 255.0)
-        )
-        if not remove_random
-        else torch.tensor(0.0)
+    _sigma = (
+        torch.tensor(sigma) if sigma else torch.empty(1).uniform_(0, sigma_max / 255.0)
     )
-    kernel_generator = (
-        random.choice(
-            [k_synthesizer.gen_gaussian_kernel, k_synthesizer.gen_motion_kernel]
-        )
-        if not remove_random
-        else k_synthesizer.gen_gaussian_kernel
-    )
-    k = (
-        kernel_generator(k_size)
-        .unsqueeze(0)
-        .unsqueeze(0)
-        .expand(H_img_tensor.shape[0], -1, -1, -1)
-    )
-    pad_size = k.shape[-1] // 2
-    L_img_tensor = F.pad(
-        H_img_tensor, (pad_size, pad_size, pad_size, pad_size), mode="circular"
-    ).unsqueeze(0)
-    L_img_tensor = torch.conv2d(L_img_tensor, k, groups=L_img_tensor.shape[1])[
-        ..., 0::sf, 0::sf
-    ].squeeze()
-    L_img_tensor = L_img_tensor + sigma * torch.randn_like(L_img_tensor)
+    if k_type is None:
+        k_type = random.choice(["gaussian", "motion"])
+    k = getattr(k_synthesizer, f"gen_{k_type}_kernel")(k_size)
+    L_img_tensor = circular_conv_2d_fft(H_img_tensor.unsqueeze(0), k)[..., 0::sf, 0::sf]
+    L_img_tensor, H_img_tensor = L_img_tensor.squeeze(), H_img_tensor.squeeze()
+    L_img_tensor = L_img_tensor + _sigma * torch.randn_like(L_img_tensor)
+    L_img_tensor = torch.clamp(L_img_tensor, 0, 1)
     R_img_tensor = F.interpolate(
         L_img_tensor.unsqueeze(0), scale_factor=sf, mode="nearest"
     ).squeeze()
-    # mask = torch.zeros_like(R_img_tensor)
-    # mask[...,0::sf,0::sf] = 1
 
     return DegradationOutput(
         H_img=H_img_tensor,
         L_img=L_img_tensor,
         R_img=R_img_tensor,
-        # mask=mask,
-        k=k[0],
-        sigma=sigma.view([1, 1, 1]),
+        k=k.unsqueeze(0),
+        sigma=_sigma.view([1, 1, 1]),
         sf=sf,
-        sr=1.0 / sf,
+        type=1,
     )
 
 
@@ -74,7 +58,7 @@ def main():
             tensor2float(sisr_return.H_img),
             tensor2float(sisr_return.L_img),
             tensor2float(sisr_return.R_img),
-            tensor2float(sisr_return.k[0].squeeze().unsqueeze(0)),
+            tensor2float(sisr_return.k),
         ]
     )
 

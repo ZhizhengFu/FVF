@@ -62,8 +62,8 @@ class DefaultDataset(data.Dataset):
     def collate_fn(
         batch: List[NDArray[np.uint8]], opt: Config, mode: str, device: torch.device
     ) -> DegradationOutput:
-        sf = random.choice(opt.sf) if mode == "train" else 3
-        sr = random.uniform(opt.sr[0], opt.sr[1]) if mode == "train" else 1.0 / sf
+        sf = random.choice(opt.sf)
+        sr = random.uniform(opt.sr[0], opt.sr[1])
         pipeline = (
             random.choice(
                 [
@@ -73,7 +73,12 @@ class DefaultDataset(data.Dataset):
                 ]
             )
             if mode == "train"
-            else lambda img: sisr_pipeline(img, sf, remove_random=True)
+            else lambda img: sisr_pipeline(
+                img,
+                3,
+                k_type="gaussian",
+                sigma=0,
+            )
         )
 
         with ThreadPoolExecutor(max_workers=4) as executor:
@@ -85,8 +90,6 @@ class DefaultDataset(data.Dataset):
         mask_batch = torch.stack([output.mask for output in outputs]).to(device)
         k_batch = torch.stack([output.k for output in outputs]).to(device)
         sigma_batch = torch.stack([output.sigma for output in outputs]).to(device)
-        sr_batch = outputs[0].sr
-        sf_batch = outputs[0].sf
 
         return DegradationOutput(
             H_img=H_img_batch,
@@ -95,8 +98,9 @@ class DefaultDataset(data.Dataset):
             mask=mask_batch,
             k=k_batch,
             sigma=sigma_batch,
-            sr=sr_batch,
-            sf=sf_batch,
+            sr=outputs[0].sr,
+            sf=outputs[0].sf,
+            type=outputs[0].type,
         )
 
     def get_collate_fn(self):

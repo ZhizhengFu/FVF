@@ -11,6 +11,70 @@ from matplotlib import pyplot as plt
 from dataclasses import dataclass, field
 
 
+def circular_conv_2d_via_matrix_multiplication(image, kernel):
+    if image.dim() == 2:
+        image = image.unsqueeze(0).unsqueeze(0)
+    if kernel.dim() == 2:
+        kernel = kernel.unsqueeze(0).unsqueeze(0)
+
+    h, w = image.shape[-2:]
+    kh, kw = kernel.shape[-2:]
+
+    H = _construct_circulant_matrix(kernel.squeeze(), h, w)
+    flat_image = image.squeeze().flatten()
+    result = H @ flat_image
+
+    return result.reshape(h, w), H, flat_image
+
+
+def _construct_circulant_matrix(kernel, h, w):
+    kh, kw = kernel.shape
+    H = torch.zeros(h * w, h * w)
+
+    for i in range(h):
+        for j in range(w):
+            row_idx = i * w + j
+            for ki in range(kh):
+                for kj in range(kw):
+                    pos_i = (i + ki - kh + 1) % h
+                    pos_j = (j + kj - kw + 1) % w
+                    col_idx = pos_i * w + pos_j
+                    H[row_idx, col_idx] = kernel[ki, kj]
+    return H
+
+
+def circular_conv_2d_fft(image: torch.Tensor, kernel: torch.Tensor) -> torch.Tensor:
+    if image.dim() == 2:
+        image = image.unsqueeze(0).unsqueeze(0)
+    if kernel.dim() == 2:
+        kernel = kernel.unsqueeze(0).unsqueeze(0)
+    batch_size, channels, h, w = image.shape
+    kh, kw = kernel.shape[-2:]
+
+    kernel = torch.flip(kernel, [-1, -2])
+    fft_image = torch.fft.fft2(image)
+    fft_kernel = torch.fft.fft2(kernel, s=(h, w))
+    product = fft_image * fft_kernel
+    result = torch.fft.ifft2(product)
+
+    return torch.real(result)
+
+
+def circular_conv_2d_conv(image: torch.Tensor, kernel: torch.Tensor) -> torch.Tensor:
+    if image.dim() == 2:
+        image = image.unsqueeze(0).unsqueeze(0)
+    if kernel.dim() == 2:
+        kernel = kernel.unsqueeze(0).unsqueeze(0)
+    batch_size, channels, h, w = image.shape
+    kernel = kernel.repeat(channels, 1, 1, 1)
+    kh, kw = kernel.shape[-2:]
+    pad_h = kh - 1
+    pad_w = kw - 1
+    image_pad = F.pad(image, (pad_w, 0, pad_h, 0), mode="circular")
+    result = F.conv2d(image_pad, kernel, padding=0, groups=channels)
+    return result
+
+
 class PSNR(nn.Module):
     """Peak Signal to Noise Ratio
     img1 and img2 have range [0, 1]"""
@@ -136,8 +200,9 @@ class DegradationOutput:
     mask: torch.Tensor = field(default_factory=lambda: torch.tensor([]))
     k: torch.Tensor = field(default_factory=lambda: torch.tensor([[[1.0]]]))
     sigma: torch.Tensor = field(default_factory=lambda: torch.tensor([[[0.0]]]))
-    sr: float = 0.0
+    sr: float = 1.0
     sf: int = 1
+    type: int = 1
 
     def __post_init__(self):
         if self.mask.numel() == 0:

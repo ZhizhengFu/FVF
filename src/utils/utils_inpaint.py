@@ -1,27 +1,28 @@
 import cv2
+import torch
 import numpy as np
 from pathlib import Path
+from typing import Literal, Annotated
 from numpy.typing import NDArray
 from .utils_image import uint2tensor, DegradationOutput
 
 
 def inpaint_pipeline(
     H_img: NDArray[np.uint8],
-    sr: float,
-    method: str = "NS",
+    sr: Annotated[float, "Value must be between 0.0 and 1.0"],
+    method: Literal["NS", "TELEA"] = "NS",
+    sigma: float | None = None,
+    sigma_max: float = 25,
 ) -> DegradationOutput:
-    if not (0.0 <= sr <= 1.0):
-        raise ValueError("Masking ratio must be between 0 and 1.")
-    if method not in {"NS", "TELEA"}:
-        raise ValueError("Invalid inpainting method. Use 'NS' or 'TELEA'.")
     mask = (np.random.rand(*H_img.shape[:2]) < sr).astype(np.uint8)
-    L_img = H_img * mask[..., np.newaxis]
-    method_map = {"NS": cv2.INPAINT_NS, "TELEA": cv2.INPAINT_TELEA}
+    _sigma = sigma if sigma is not None else np.random.uniform(0, sigma_max / 255.0)
+    L_img = H_img * mask[..., np.newaxis] + _sigma * 255 * np.random.randn(*H_img.shape)
+    L_img = np.clip(L_img, 0, 255).astype(np.uint8)
     R_img = cv2.inpaint(
         L_img,
         ~mask & 1,
         inpaintRadius=3,
-        flags=method_map[method],
+        flags=getattr(cv2, f"INPAINT_{method}"),
     ).astype(np.uint8)
     mask = np.repeat(mask[..., np.newaxis], 3, axis=-1)
 
@@ -35,7 +36,9 @@ def inpaint_pipeline(
         L_img=L_img_tensor,
         R_img=R_img_tensor,
         mask=mask_tensor,
+        sigma=torch.tensor([_sigma]).view([1, 1, 1]),
         sr=sr,
+        type=3,
     )
 
 

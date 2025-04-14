@@ -7,33 +7,28 @@ class ConvBlock(nn.Module):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
+            # nn.BatchNorm2d(out_channels),
             activation(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
+            # nn.BatchNorm2d(out_channels),
         )
-        self.shortcut = (
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-            if in_channels != out_channels
-            else nn.Identity()
-        )
-        self.act = activation(inplace=True)
 
     def forward(self, x):
-        return self.act(self.conv(x) + self.shortcut(x))
+        res = self.conv(x)
+        return res + x
 
 
 class DownsampleBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = nn.Conv2d(
-            in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False
+            in_channels, out_channels, kernel_size=2, stride=2, padding=0, bias=False
         )
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.act = nn.ReLU(inplace=True)
+        # self.norm = nn.BatchNorm2d(out_channels)
+        # self.act = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        return self.act(self.norm(self.conv(x)))
+        return (self.conv(x))
 
 
 class UpsampleBlock(nn.Module):
@@ -42,11 +37,11 @@ class UpsampleBlock(nn.Module):
         self.up = nn.ConvTranspose2d(
             in_channels, out_channels, kernel_size=2, stride=2, bias=False
         )
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.act = nn.ReLU(inplace=True)
+        # self.norm = nn.BatchNorm2d(out_channels)
+        # self.act = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        return self.act(self.norm(self.up(x)))
+        return (self.up(x))
 
 
 class ResUNet(nn.Module):
@@ -58,8 +53,8 @@ class ResUNet(nn.Module):
         # Initial convolution
         self.head = nn.Sequential(
             nn.Conv2d(in_channels, channels[0], kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(channels[0]),
-            nn.ReLU(inplace=True),
+            # nn.BatchNorm2d(channels[0]),
+            # nn.ReLU(inplace=True),
         )
 
         # Downsample path

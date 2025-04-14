@@ -30,7 +30,7 @@ def save_code_snapshot(dst_dir: Path, config_name: str) -> None:
             destination_path = dst_dir / file_path.relative_to(src_dir)
             destination_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(file_path, destination_path)
-    shutil.copy(Path("configs") / f"{config_name}.toml", dst_dir)
+    shutil.copy(Path("configs") / f"{config_name}.toml", dst_dir.parent)
 
 
 def get_cur_time() -> str:

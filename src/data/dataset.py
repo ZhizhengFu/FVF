@@ -62,24 +62,23 @@ class DefaultDataset(data.Dataset):
     def collate_fn(
         batch: List[NDArray[np.uint8]], opt: Config, mode: str, device: torch.device
     ) -> DegradationOutput:
-        sf = random.choice(opt.sf)
-        sr = random.uniform(opt.sr[0], opt.sr[1])
-        pipeline = (
-            random.choice(
+        if mode == "train":
+            sf = random.choice(opt.sf)
+            sr = random.uniform(opt.sr[0], opt.sr[1])
+            pipeline = random.choice(
                 [
                     lambda img: mosaic_CFA_Bayer_pipeline(img),
                     lambda img: sisr_pipeline(img, sf),
                     lambda img: inpaint_pipeline(img, sr),
                 ]
             )
-            if mode == "train"
-            else lambda img: sisr_pipeline(
+        else:
+            pipeline = lambda img: sisr_pipeline(
                 img,
                 3,
                 k_type="gaussian",
                 sigma=0,
             )
-        )
 
         with ThreadPoolExecutor(max_workers=4) as executor:
             outputs = list(executor.map(pipeline, batch))

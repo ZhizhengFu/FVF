@@ -1,7 +1,6 @@
 import cv2
 import torch
 import numpy as np
-from pathlib import Path
 from typing import Literal, Annotated
 from numpy.typing import NDArray
 from .utils_image import uint2tensor, DegradationOutput
@@ -11,13 +10,12 @@ def inpaint_pipeline(
     H_img: NDArray[np.uint8],
     sr: Annotated[float, "Value must be between 0.0 and 1.0"],
     method: Literal["NS", "TELEA"] = "NS",
-    sigma: float | None = None,
+    sigma: int | None = None,
     sigma_max: float = 25,
 ) -> DegradationOutput:
     mask = (np.random.rand(*H_img.shape[:2]) < sr).astype(np.uint8)
-    _sigma = sigma if sigma is not None else np.random.uniform(0, sigma_max / 255.0)
-    L_img = H_img * mask[..., np.newaxis] + _sigma * 255 * np.random.randn(*H_img.shape)
-    L_img = np.clip(L_img, 0, 255).astype(np.uint8)
+    _sigma = sigma if sigma is not None else np.random.uniform(0, sigma_max)
+    L_img = (H_img * mask[..., np.newaxis] + _sigma * np.random.randn(*H_img.shape)).astype(np.uint8)
     R_img = cv2.inpaint(
         L_img,
         ~mask & 1,
@@ -44,6 +42,7 @@ def inpaint_pipeline(
 
 def main():
     from .utils_image import imread_uint_3, imshow, tensor2float
+    from pathlib import Path
 
     image = imread_uint_3(Path("src/utils/test.png"))
     inpaint_return = inpaint_pipeline(image, 0.2, method="NS")

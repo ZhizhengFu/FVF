@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+from torchvision.utils import save_image
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from pathlib import Path
 from src.config import Config
@@ -46,7 +47,7 @@ class Trainer:
             self.opt.optimizer.warmup_epochs + self.opt.optimizer.decay_epochs
         ):
             train_loss = self._train_epoch(epoch)
-            val_loss, val_psnr, val_ssim = self._validate()
+            val_loss, val_psnr, val_ssim = self._validate(epoch)
             test_loss, test_psnr, test_ssim = self._test_model()
             metrics = {
                 "train_loss": train_loss,
@@ -97,17 +98,19 @@ class Trainer:
 
         return train_loss / len(self.train_dataloader)
 
-    def _validate(self):
+    def _validate(self, epoch: int):
         self.model.eval()
         val_loss = 0.0
         total_psnr = 0
         total_ssim = 0
-
+        (self.dst_dir / "images").mkdir(parents=True, exist_ok=True)
         with torch.no_grad():
-            for batch in self.val_dataloader:
+            for batch_idx, batch in enumerate(self.val_dataloader):
                 output = self.model(batch)[
                     ..., : batch.H_img.shape[2], : batch.H_img.shape[3]
                 ]
+                (self.dst_dir / "images" / str(batch_idx)).mkdir(parents=True, exist_ok=True)
+                save_image(output, self.dst_dir / "images" / str(batch_idx) / (str(epoch)+".png"))
                 val_loss += self.loss_fn(output, batch.H_img).item()
                 total_psnr += self.psnr(output, batch.H_img).item()
                 total_ssim += self.ssim(output, batch.H_img).item()
@@ -140,7 +143,7 @@ class Trainer:
         )
 
     def _save_checkpoint(self, epoch: int, is_best: bool = False):
-        (self.dst_dir / "checkpoint").mkdir(parents=True, exist_ok=True)
+        (self.dst_dir / "checkpoints").mkdir(parents=True, exist_ok=True)
         checkpoint = {
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
@@ -149,9 +152,9 @@ class Trainer:
             "epoch": epoch,
         }
         if is_best:
-            torch.save(checkpoint, Path(self.dst_dir / "checkpoint" / "best_model.pth"))
+            torch.save(checkpoint, Path(self.dst_dir / "checkpoints" / "best_model.pth"))
         torch.save(
-            checkpoint, Path(self.dst_dir / "checkpoint" / f"checkpoint_{epoch}.pth")
+            checkpoint, Path(self.dst_dir / "checkpoints" / f"checkpoint_{epoch}.pth")
         )
 
     def _load_checkpoint(
@@ -183,7 +186,7 @@ class Trainer:
     def _init_train(self) -> None:
         init_seed(self.opt.seed, self.opt.deterministic)
         if self.opt.save_snapshots:
-            save_code_snapshot(self.dst_dir, self.CONFIG_NAME)
+            save_code_snapshot(self.dst_dir / "codes", self.CONFIG_NAME)
 
     @staticmethod
     def _init_model(opt: Config, device):

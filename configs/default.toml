@@ -18,7 +18,7 @@ checkpoint_save = 10
 name = "adam"
 lr = 1e-4
 start_factor = 0.1
-warmup_epochs = 100
+warmup_epochs = 2
 decay_epochs = 1000
 
 [train.wandb]
@@ -26,8 +26,8 @@ is_enabled = false
 project = "defaultnet"
 
 [datasets]
-batch_size = 24
-num_workers = 4
+batch_size = 8
+num_workers = 2
 pin_memory = true
 
 [datasets.train]

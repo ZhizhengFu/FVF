@@ -9,15 +9,8 @@ from .backbone import ResUNet
 class HyperNet(nn.Module):
     def __init__(self, in_nc=4, channel=64, out_nc=16, k_in=1):
         super().__init__()
-        self.k_net = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(1, 8, 1),
-            nn.ReLU(),
-            nn.Conv2d(8, 1, 1),
-            nn.Sigmoid()
-        )
         self.net = nn.Sequential(
-            nn.Conv2d(in_nc + 1, channel, 1, padding=0, bias=True),
+            nn.Conv2d(in_nc, channel, 1, padding=0, bias=True),
             nn.ReLU(inplace=True),
             nn.Conv2d(channel, channel, 1, padding=0, bias=True),
             nn.ReLU(inplace=True),
@@ -25,9 +18,7 @@ class HyperNet(nn.Module):
             nn.Softplus(),
         )
 
-    def forward(self, x, k):
-        k_feat = self.k_net(k)
-        x = torch.cat([x, k_feat], dim=1)
+    def forward(self, x):
         return self.net(x) + 1e-7
 
 
@@ -42,16 +33,21 @@ class DataNet(nn.Module):
         return torch.mean(b, dim=-1)
 
     def forward(self, input: DegradationOutput, alpha, FK, FCK, F2K, FCKFSHy):
-        x, alpha = input.R_img.to(torch.float64), alpha.to(torch.float64)
         if input.type == 1:
-            FR = FCKFSHy + fft2(alpha * x)
-            _FKFR_, _F2K_ = self.splits_and_mean(FK * FR, input.sf), self.splits_and_mean(F2K, input.sf)
+            FR = FCKFSHy + fft2(alpha * input.R_img)
+            _FKFR_, _F2K_ = (
+                self.splits_and_mean(FK * FR, input.sf),
+                self.splits_and_mean(F2K, input.sf),
+            )
             _FKFR_FMdiv_FK2_FM = _FKFR_ / (_F2K_ + alpha)
-            FCK_FKFR_FMdiv_FK2_FM = FCK * _FKFR_FMdiv_FK2_FM.repeat(1, 1, input.sf, input.sf)
+            FCK_FKFR_FMdiv_FK2_FM = FCK * _FKFR_FMdiv_FK2_FM.repeat(
+                1, 1, input.sf, input.sf
+            )
             FX = (FR - FCK_FKFR_FMdiv_FK2_FM) / alpha
-            return torch.real(ifft2(FX)).to(torch.float32)
+            return ifft2(FX).real
         else:
-            return ((input.L_img + alpha*input.R_img) / (input.mask + alpha) ).to(torch.float32)
+            return (input.L_img + alpha * input.R_img) / (input.mask + alpha)
+
 
 class defaultnet(nn.Module):
     def __init__(self, opt: Config):
@@ -63,35 +59,31 @@ class defaultnet(nn.Module):
 
     @staticmethod
     def prepare_frequency_components(input: DegradationOutput) -> tuple:
-        K = torch.flip(input.k.to(torch.float64), [-1, -2])
-        FK = fft2(
-            K, s=(input.R_img.size(-2), input.R_img.size(-1))
-        )
+        K = torch.flip(input.k, [-1, -2])
+        FK = fft2(K, s=(input.R_img.size(-2), input.R_img.size(-1)))
         FCK, F2K = torch.conj(FK), torch.abs(FK) ** 2
         SHy = torch.zeros_like(input.R_img)
         SHy[..., 0 :: input.sf, 0 :: input.sf] = input.L_img
-        FCKFSHy = FCK * fft2(SHy.to(torch.float64))
+        FCKFSHy = FCK * fft2(SHy)
         return FK, FCK, F2K, FCKFSHy
 
     def forward(self, input: DegradationOutput):
-        FK, FCK, F2K, FCKFSHy = self.prepare_frequency_components(input)
+        if input.type == 1:
+            FK, FCK, F2K, FCKFSHy = self.prepare_frequency_components(input)
+        else:
+            FK, FCK, F2K, FCKFSHy = None, None, None, None
         ab = self.h(
             torch.cat(
                 (
                     input.sigma,
-                    torch.tensor(input.sf)
-                    .type_as(input.sigma)
-                    .expand_as(input.sigma),
-                    torch.tensor(input.sr)
-                    .type_as(input.sigma)
-                    .expand_as(input.sigma),
+                    torch.tensor(input.sf).type_as(input.sigma).expand_as(input.sigma),
+                    torch.tensor(input.sr).type_as(input.sigma).expand_as(input.sigma),
                     torch.tensor(input.type)
                     .type_as(input.sigma)
                     .expand_as(input.sigma),
                 ),
                 dim=1,
-            ),
-            input.k,
+            )
         )
         for i in range(self.opt.iter_num):
             input.R_img = self.d(

@@ -4,14 +4,19 @@ from numpy.typing import NDArray
 from typing import Literal
 from .utils_image import DegradationOutput, uint2tensor
 
+
 def jpeg_pipeline(
     H_img: NDArray[np.uint8],
     quality: int | None = None,
-    quality_min: int = 5,
-    quality_max: int = 95,
+    quality_min: int = 10,
+    quality_max: int = 50,
     subsampling: Literal["444", "422", "420", "411", "440"] = "420",
 ) -> DegradationOutput:
-    _quality = quality if quality is not None else np.random.randint(quality_min, quality_max + 1)
+    _quality = (
+        quality
+        if quality is not None
+        else np.random.randint(quality_min, quality_max + 1)
+    )
     subsampling_map = {
         "444": cv2.IMWRITE_JPEG_SAMPLING_FACTOR_444,
         "422": cv2.IMWRITE_JPEG_SAMPLING_FACTOR_422,
@@ -20,12 +25,16 @@ def jpeg_pipeline(
         "440": cv2.IMWRITE_JPEG_SAMPLING_FACTOR_440,
     }
     params = [
-        cv2.IMWRITE_JPEG_QUALITY, _quality,
-        cv2.IMWRITE_JPEG_SAMPLING_FACTOR, subsampling_map[subsampling]
+        cv2.IMWRITE_JPEG_QUALITY,
+        _quality,
+        cv2.IMWRITE_JPEG_SAMPLING_FACTOR,
+        subsampling_map[subsampling],
     ]
 
     _, encimg = cv2.imencode(".jpg", cv2.cvtColor(H_img, cv2.COLOR_RGB2BGR), params)
-    L_img = cv2.cvtColor(cv2.imdecode(encimg, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB).astype(np.uint8)
+    L_img = cv2.cvtColor(
+        cv2.imdecode(encimg, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB
+    ).astype(np.uint8)
 
     H_img_tensor = uint2tensor(H_img)
     L_img_tensor = uint2tensor(L_img)

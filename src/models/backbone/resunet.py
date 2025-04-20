@@ -28,7 +28,7 @@ class DownsampleBlock(nn.Module):
         # self.act = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        return (self.conv(x))
+        return self.conv(x)
 
 
 class UpsampleBlock(nn.Module):
@@ -41,7 +41,7 @@ class UpsampleBlock(nn.Module):
         # self.act = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        return (self.up(x))
+        return self.up(x)
 
 
 class ResUNet(nn.Module):

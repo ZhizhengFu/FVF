@@ -15,7 +15,9 @@ def inpaint_pipeline(
 ) -> DegradationOutput:
     mask = (np.random.rand(*H_img.shape[:2]) < sr).astype(np.uint8)
     _sigma = sigma if sigma is not None else np.random.uniform(0, sigma_max)
-    L_img = (H_img * mask[..., np.newaxis] + _sigma * np.random.randn(*H_img.shape)).astype(np.uint8)
+    L_img = (
+        H_img * mask[..., np.newaxis] + _sigma * np.random.randn(*H_img.shape)
+    ).astype(np.uint8)
     R_img = cv2.inpaint(
         L_img,
         ~mask & 1,

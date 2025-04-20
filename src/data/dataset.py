@@ -39,7 +39,7 @@ class DefaultDataset(data.Dataset):
         patch_size = self.opt.patch_size if self.opt.patch_size else 96
         return A.Compose(
             [
-                A.Rotate(),
+                # A.Rotate(),
                 A.VerticalFlip(),
                 A.HorizontalFlip(),
                 A.ColorJitter(
@@ -68,7 +68,7 @@ class DefaultDataset(data.Dataset):
             pipeline = random.choice(
                 [
                     lambda img: mosaic_CFA_Bayer_pipeline(img),
-                    lambda img: sisr_pipeline(img, sf),
+                    lambda img: sisr_pipeline(img, sf, k_type="motion", sigma=10),
                     lambda img: inpaint_pipeline(img, sr),
                 ]
             )
@@ -76,7 +76,7 @@ class DefaultDataset(data.Dataset):
             pipeline = lambda img: sisr_pipeline(
                 img,
                 3,
-                k_type="gaussian",
+                k_type="motion",
                 sigma=0,
             )
 

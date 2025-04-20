@@ -38,18 +38,24 @@ class Trainer:
         self.optimizer = self._init_optimizer()
         self.scheduler = self._init_scheduler()
         if config.model.pretrained_path:
-            self.model.load_state_dict(torch.load(config.model.pretrained_path))
+            self.epoch = self._load_checkpoint(config.model.pretrained_path)
+        else:
+            self.epoch = 0
 
     def run_loop(self):
         self.logger.log_message(f"Starting training with config: {self.CONFIG_NAME}")
         self.logger.log_message(f"Model architecture: {str(self.model)}")
         for epoch in range(
-            self.opt.optimizer.warmup_epochs + self.opt.optimizer.decay_epochs
+            self.epoch,
+            self.opt.optimizer.warmup_epochs
+            + self.opt.optimizer.decay_epochs
+            - self.epoch,
         ):
             train_loss = self._train_epoch(epoch)
             val_loss, val_psnr, val_ssim = self._validate(epoch)
             test_loss, test_psnr, test_ssim = self._test_model()
             metrics = {
+                "epoch": epoch,
                 "train_loss": train_loss,
                 "val_loss": val_loss,
                 "val_psnr": val_psnr,
@@ -57,7 +63,6 @@ class Trainer:
                 "test_loss": test_loss,
                 "test_psnr": test_psnr,
                 "test_ssim": test_ssim,
-                "epoch": epoch,
                 "lr": self.optimizer.param_groups[0]["lr"],
             }
             self.logger.log_metrics(metrics, step=epoch)
@@ -77,25 +82,21 @@ class Trainer:
         self.logger.finish()
 
     def _train_epoch(self, epoch: int):
-        self.model.train()
         train_loss = 0.0
+        self.model.train()
         self.logger.log_message(f"Starting epoch {epoch}")
         scaler = torch.cuda.amp.GradScaler()
-
-        for batch_idx, batch in enumerate(self.train_dataloader):
+        for batch in self.train_dataloader:
             self.optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 output = self.model(batch)
                 loss = self.loss_fn(output, batch.H_img)
             scaler.scale(loss).backward()
+            scaler.unscale_(self.optimizer)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             scaler.step(self.optimizer)
             scaler.update()
             train_loss += loss.item()
-            if batch_idx % 1000 == 0:
-                self.logger.log_message(
-                    f"Epoch {epoch} Batch {batch_idx} Loss: {loss.item():.4f}"
-                )
-
         return train_loss / len(self.train_dataloader)
 
     def _validate(self, epoch: int):
@@ -109,8 +110,13 @@ class Trainer:
                 output = self.model(batch)[
                     ..., : batch.H_img.shape[2], : batch.H_img.shape[3]
                 ]
-                (self.dst_dir / "images" / str(batch_idx)).mkdir(parents=True, exist_ok=True)
-                save_image(output, self.dst_dir / "images" / str(batch_idx) / (str(epoch)+".png"))
+                (self.dst_dir / "images" / str(batch_idx)).mkdir(
+                    parents=True, exist_ok=True
+                )
+                save_image(
+                    output,
+                    self.dst_dir / "images" / str(batch_idx) / (str(epoch) + ".png"),
+                )
                 val_loss += self.loss_fn(output, batch.H_img).item()
                 total_psnr += self.psnr(output, batch.H_img).item()
                 total_ssim += self.ssim(output, batch.H_img).item()
@@ -152,7 +158,9 @@ class Trainer:
             "epoch": epoch,
         }
         if is_best:
-            torch.save(checkpoint, Path(self.dst_dir / "checkpoints" / "best_model.pth"))
+            torch.save(
+                checkpoint, Path(self.dst_dir / "checkpoints" / "best_model.pth")
+            )
         torch.save(
             checkpoint, Path(self.dst_dir / "checkpoints" / f"checkpoint_{epoch}.pth")
         )

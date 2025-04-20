@@ -23,7 +23,9 @@ def sisr_pipeline(
 ) -> DegradationOutput:
     H_img_tensor = uint2tensor(H_img)
     _sigma = (
-        torch.tensor(sigma / 255.0) if sigma is not None else torch.empty(1).uniform_(0, sigma_max / 255.0)
+        torch.tensor(sigma / 255.0)
+        if sigma is not None
+        else torch.empty(1).uniform_(0, sigma_max / 255.0)
     )
     if k_type is None:
         k_type = random.choice(["gaussian", "motion"])
@@ -40,7 +42,7 @@ def sisr_pipeline(
         L_img=L_img_tensor,
         R_img=R_img_tensor,
         k=k.unsqueeze(0),
-        sigma=_sigma.view([1, 1, 1]),
+        sigma=(_sigma*255).view([1, 1, 1]),
         sf=sf,
         type=1,
     )

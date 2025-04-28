@@ -11,6 +11,17 @@ from matplotlib import pyplot as plt
 from dataclasses import dataclass, field
 
 
+def wiener_denoiser(SHx_n, sigma):
+    sigma_norm = sigma / 255.0
+    noise_power = sigma_norm**2
+    signal_fft = torch.fft.fft2(SHx_n)
+    signal_power = torch.abs(signal_fft) ** 2 / torch.numel(SHx_n)
+    wiener_filter = signal_power / (signal_power + noise_power)
+    denoised_fft = signal_fft * wiener_filter
+    denoised = torch.fft.ifft2(denoised_fft).real
+    return denoised, wiener_filter
+
+
 def circular_conv_2d_via_matrix_multiplication(image, kernel):
     if image.dim() == 2:
         image = image.unsqueeze(0).unsqueeze(0)
@@ -486,11 +497,12 @@ def imshow(images: List[np.ndarray], titles: List[str] | None = None) -> None:
         raise ValueError("Number of images and titles must match.")
     cols = min(num_images, 5)
     rows = (num_images + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 5 * rows))
+    fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 2.3 * rows))
     axes = np.array(axes).reshape(-1)
     for ax, img, title in zip(axes, images, titles):
         ax.imshow(img)
-        ax.set_title(title)
+        if title != "":
+            ax.set_title(title)
         ax.axis("off")
     for ax in axes[num_images:]:
         ax.remove()

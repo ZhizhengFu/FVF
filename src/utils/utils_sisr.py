@@ -34,7 +34,7 @@ def sisr_pipeline(
     L_img_tensor, H_img_tensor = L_img_tensor.squeeze(), H_img_tensor.squeeze()
     L_img_tensor = L_img_tensor + _sigma * torch.randn_like(L_img_tensor)
     R_img_tensor = F.interpolate(
-        L_img_tensor.unsqueeze(0), scale_factor=sf, mode="nearest"
+        L_img_tensor.unsqueeze(0), scale_factor=sf, mode="bicubic"
     ).squeeze()
 
     return DegradationOutput(
@@ -42,7 +42,7 @@ def sisr_pipeline(
         L_img=L_img_tensor,
         R_img=R_img_tensor,
         k=k.unsqueeze(0),
-        sigma=(_sigma*255).view([1, 1, 1]),
+        sigma=(_sigma * 255).view([1, 1, 1]),
         sf=sf,
         type=1,
     )

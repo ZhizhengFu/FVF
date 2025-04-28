@@ -46,4 +46,6 @@ uv lock --upgrade
 
 <https://github.com/RL-VIG/LibFewShot>
 
+<https://github.com/deepinv/deepinv>
+
 <https://github.com/cszn/KAIR>

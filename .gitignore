@@ -6,4 +6,3 @@ __pycache__
 wandb
 experiments/*
 datasets/*
-test/*

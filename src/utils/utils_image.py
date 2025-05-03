@@ -19,7 +19,7 @@ def wiener_denoiser(SHx_n, sigma):
     wiener_filter = signal_power / (signal_power + noise_power)
     denoised_fft = signal_fft * wiener_filter
     denoised = torch.fft.ifft2(denoised_fft).real
-    return denoised, wiener_filter
+    return denoised
 
 
 def circular_conv_2d_via_matrix_multiplication(image, kernel):

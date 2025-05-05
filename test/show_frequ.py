@@ -55,7 +55,12 @@ def circular_conv_2d_fft(image: torch.Tensor, kernel: torch.Tensor):
     product = fft_image * fft_kernel
     result = torch.fft.ifft2(product)
 
-    return torch.real(result), torch.real(fft_image), torch.real(fft_kernel), torch.real(product)
+    return (
+        torch.real(result),
+        torch.real(fft_image),
+        torch.real(fft_kernel),
+        torch.real(product),
+    )
 
 
 if __name__ == "__main__":
@@ -84,7 +89,6 @@ if __name__ == "__main__":
     # nnn = torch.nn.functional.interpolate(nnn, scale_factor=sf, mode="nearest")
     alpha = 0.0001
     t_kernel = torch.flip(kernel, [-1, -2])
-
 
     nnn_noise = torch.zeros_like(y)
     nnn_noise[..., ::sf, ::sf] = nnn
@@ -118,13 +122,12 @@ if __name__ == "__main__":
             tensor2float(y.squeeze()),
             tensor2float(v.squeeze()),
             tensor2float(ans_.squeeze()),
-
             tensor2float(fft_image.squeeze()),
             tensor2float(product.squeeze()),
             tensor2float(fft_y.real),
             tensor2float(fft_v.real),
             tensor2float(fft_ans.real),
-            fft_kernel.squeeze(), # type: ignore[arg-type]
+            fft_kernel.squeeze(),  # type: ignore[arg-type]
             kernel,
         ]
     )

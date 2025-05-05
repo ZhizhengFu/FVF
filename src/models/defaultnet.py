@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 from torch.fft import fft2, ifft2
+import torch.nn.functional as F
 from src.config import Config
-from src.utils import DegradationOutput
+from src.utils import DegradationOutput, wiener_denoiser
 from .backbone import ResUNet
 
 
@@ -23,8 +24,10 @@ class HyperNet(nn.Module):
 
 
 class DataNet(nn.Module):
-    def __init__(self):
+    def __init__(self, need_loop=True):
         super().__init__()
+        self.need_loop = need_loop
+        self.mode = "nearest"
 
     @staticmethod
     def splits_and_mean(a, sf):
@@ -34,16 +37,28 @@ class DataNet(nn.Module):
 
     def forward(self, input: DegradationOutput, alpha, FK, FCK, F2K, FCKFSHy):
         if input.type == 1:
-            FR = FCKFSHy + fft2(alpha * input.R_img)
-            _FKFR_, _F2K_ = (
-                self.splits_and_mean(FK * FR, input.sf),
-                self.splits_and_mean(F2K, input.sf),
-            )
-            _FKFR_FMdiv_FK2_FM = _FKFR_ / (_F2K_ + alpha)
-            FCK_FKFR_FMdiv_FK2_FM = FCK * _FKFR_FMdiv_FK2_FM.repeat(
-                1, 1, input.sf, input.sf
-            )
-            FX = (FR - FCK_FKFR_FMdiv_FK2_FM) / alpha
+            sf_ = input.sf
+            while True:
+                FR = FCKFSHy + fft2(alpha * input.R_img)
+                _FKFR_, _F2K_ = (
+                    self.splits_and_mean(FK * FR, input.sf),
+                    self.splits_and_mean(F2K, input.sf),
+                )
+                _FKFR_FMdiv_FK2_FM = _FKFR_ / (_F2K_ + alpha)
+                FCK_FKFR_FMdiv_FK2_FM = FCK * _FKFR_FMdiv_FK2_FM.repeat(
+                    1, 1, input.sf, input.sf
+                )
+                FX = (FR - FCK_FKFR_FMdiv_FK2_FM) / alpha
+                ans_ = ifft2(FX).real
+                if sf_ == 2 or sf_ == 3 or not self.need_loop:
+                    break
+                sf_ = sf_ // 2
+                SHx_n_true = F.avg_pool2d(ans_, kernel_size=sf_, stride=sf_, padding=0)
+                input.R_img = F.interpolate(
+                    wiener_denoiser(SHx_n_true, input.sigma),
+                    scale_factor=sf_,
+                    mode=self.mode,
+                )
             return ifft2(FX).real
         else:
             return (input.L_img + alpha * input.R_img) / (input.mask + alpha)
@@ -63,7 +78,9 @@ class defaultnet(nn.Module):
         FK = fft2(K, s=(input.R_img.size(-2), input.R_img.size(-1)))
         FCK, F2K = torch.conj(FK), torch.abs(FK) ** 2
         SHy = torch.zeros_like(input.R_img)
-        SHy[..., 0 :: input.sf, 0 :: input.sf] = input.L_img
+        SHy[..., 0 :: input.sf, 0 :: input.sf] = wiener_denoiser(
+            input.L_img, input.sigma
+        )
         FCKFSHy = FCK * fft2(SHy)
         return FK, FCK, F2K, FCKFSHy
 
@@ -77,10 +94,6 @@ class defaultnet(nn.Module):
                 (
                     input.sigma,
                     torch.tensor(input.sf).type_as(input.sigma).expand_as(input.sigma),
-                    torch.tensor(input.sr).type_as(input.sigma).expand_as(input.sigma),
-                    torch.tensor(input.type)
-                    .type_as(input.sigma)
-                    .expand_as(input.sigma),
                 ),
                 dim=1,
             )

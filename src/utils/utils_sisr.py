@@ -6,6 +6,7 @@ from typing import Literal
 from numpy.typing import NDArray
 from .utils_image import (
     uint2tensor,
+    wiener_denoiser,
     circular_conv_2d_fft,
     DegradationOutput,
     KernelSynthesizer,
@@ -30,11 +31,18 @@ def sisr_pipeline(
     if k_type is None:
         k_type = random.choice(["gaussian", "motion"])
     k = getattr(k_synthesizer, f"gen_{k_type}_kernel")(k_size)
-    L_img_tensor = circular_conv_2d_fft(H_img_tensor.unsqueeze(0), k)[..., 0::sf, 0::sf]
-    L_img_tensor, H_img_tensor = L_img_tensor.squeeze(), H_img_tensor.squeeze()
-    L_img_tensor = L_img_tensor + _sigma * torch.randn_like(L_img_tensor)
+    kh, kw = k.shape[-2:]
+    pad_h = kh - 1
+    pad_w = kw - 1
+    Hx = circular_conv_2d_fft(H_img_tensor.unsqueeze(0), k)
+    L_img_tensor = Hx + _sigma * torch.randn_like(Hx)
+    R_img_tensor = torch.roll(
+        L_img_tensor, shifts=[-(pad_h // 2), -(pad_w // 2)], dims=(-2, -1)
+    )
+    L_img_tensor = L_img_tensor[..., ::sf, ::sf].squeeze()
+    R_img_tensor = R_img_tensor[..., ::sf, ::sf]
     R_img_tensor = F.interpolate(
-        L_img_tensor.unsqueeze(0), scale_factor=sf, mode="bicubic"
+        wiener_denoiser(R_img_tensor, _sigma), scale_factor=sf, mode="nearest"
     ).squeeze()
 
     return DegradationOutput(
@@ -53,7 +61,7 @@ def main():
     from pathlib import Path
 
     image = imread_uint_3(Path("src/utils/test.png"))
-    sisr_return = sisr_pipeline(image, 3)
+    sisr_return = sisr_pipeline(image, 4, sigma=0, k_type="gaussian")
     imshow(
         [
             tensor2float(sisr_return.H_img),

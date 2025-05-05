@@ -46,7 +46,7 @@ class UpsampleBlock(nn.Module):
 
 class ResUNet(nn.Module):
     def __init__(
-        self, in_channels=4, out_channels=3, channels=[64, 128, 256, 512], num_blocks=2
+        self, in_channels=4, out_channels=3, channels=[64, 128, 256, 512], num_blocks=4
     ):
         super().__init__()
 

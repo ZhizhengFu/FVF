@@ -2,15 +2,17 @@ import torch
 import torch.fft
 from src.utils import PSNR
 
+
 def wiener_denoiser(SHx_n, sigma):
     sigma_norm = sigma / 255.0
-    noise_power = sigma_norm ** 2
+    noise_power = sigma_norm**2
     signal_fft = torch.fft.fft2(SHx_n)
     signal_power = torch.abs(signal_fft) ** 2 / torch.numel(SHx_n)
     wiener_filter = signal_power / (signal_power + noise_power)
     denoised_fft = signal_fft * wiener_filter
     denoised = torch.fft.ifft2(denoised_fft).real
     return denoised, wiener_filter
+
 
 def splits_and_mean(a, sf):
     b = torch.stack(torch.chunk(a, sf, dim=2), dim=4)
@@ -32,7 +34,12 @@ def circular_conv_2d_fft(image: torch.Tensor, kernel: torch.Tensor):
     product = fft_image * fft_kernel
     result = torch.fft.ifft2(product)
 
-    return torch.real(result), torch.abs(fft_image), torch.abs(fft_kernel), torch.abs(product)
+    return (
+        torch.real(result),
+        torch.abs(fft_image),
+        torch.abs(fft_kernel),
+        torch.abs(product),
+    )
 
 
 if __name__ == "__main__":
@@ -49,7 +56,7 @@ if __name__ == "__main__":
     image = uint2tensor(imread_uint_3(Path("src/utils/test.png"))).unsqueeze(0)
     kernel = KernelSynthesizer().gen_gaussian_kernel()
     sf = 3
-    image = image[..., :image.shape[-1] // sf * sf, :image.shape[-2] // sf * sf]
+    image = image[..., : image.shape[-1] // sf * sf, : image.shape[-2] // sf * sf]
     sigma = 7.65
     mode = "nearest"
     alpha = 5e-4
@@ -58,7 +65,7 @@ if __name__ == "__main__":
     Hx, Fx, Fk, FHx = circular_conv_2d_fft(image, kernel)
     SHy = torch.zeros_like(Hx)
     SHx = Hx[..., ::sf, ::sf]
-    SHx_n = SHx + torch.randn_like(SHx) * sigma / 255.
+    SHx_n = SHx + torch.randn_like(SHx) * sigma / 255.0
     SHy[..., ::sf, ::sf] = SHx_n
     # SHy[..., ::sf, ::sf], wiener_filter = wiener_denoise(SHx_n, sigma)
 
@@ -93,22 +100,20 @@ if __name__ == "__main__":
             tensor2float(SHx.squeeze()),
             tensor2float(SHx_n.squeeze()),
             tensor2float(SHy.squeeze()),
-
             tensor2float(Fx.squeeze()),
             tensor2float(FHx.squeeze()),
             tensor2float(torch.abs(torch.fft.fft2(SHx).squeeze())),
             tensor2float(torch.abs(torch.fft.fft2(SHx_n).squeeze())),
             tensor2float(torch.abs(torch.fft.fft2(SHy).squeeze())),
             # tensor2float((torch.fft.fft2(SHx_n).squeeze().real-torch.fft.fft2(SHx).squeeze().real)/torch.abs(torch.fft.fft2(SHx_n).squeeze().real-torch.fft.fft2(SHx).squeeze().real).max()),
-
             tensor2float(v.squeeze()),
             tensor2float(torch.abs(torch.fft.fft2(v).squeeze())),
             tensor2float(ans_.squeeze()),
             tensor2float(torch.abs(torch.fft.fft2(ans_).squeeze())),
-            Fk.squeeze().unsqueeze(-1).repeat(1,1,3), # type: ignore[arg-type]
+            Fk.squeeze().unsqueeze(-1).repeat(1, 1, 3),  # type: ignore[arg-type]
             K,
             # tensor2float(torch.abs(wiener_filter).squeeze()),
-            ((torch.abs(Fk)>limi).squeeze()),
+            ((torch.abs(Fk) > limi).squeeze()),
             # tensor2float(torch.real(torch.fft.ifft2(torch.fft.fft2(image).squeeze() * mmm)).squeeze())
         ]
     )

@@ -8,7 +8,7 @@ from .utils_logger import Logger
 from .utils_sisr import sisr_pipeline
 from .utils_inpaint import inpaint_pipeline
 from .utils_mosaic import mosaic_CFA_Bayer_pipeline
-from .utils_image import imread_uint_3, DegradationOutput, SSIM, PSNR
+from .utils_image import imread_uint_3, DegradationOutput, SSIM, PSNR, wiener_denoiser
 
 __all__ = [
     "get_cur_time",
@@ -23,4 +23,5 @@ __all__ = [
     "imread_uint_3",
     "SSIM",
     "PSNR",
+    "wiener_denoiser",
 ]

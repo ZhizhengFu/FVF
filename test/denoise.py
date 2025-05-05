@@ -11,6 +11,7 @@ from src.utils.utils_image import (
 )
 from pathlib import Path
 
+
 # def wiener_filter_fft(noisy_image, sigma, epsilon=1e-8):
 #     """频域维纳滤波去噪"""
 #     F_noisy = torch.fft.fft2(noisy_image)
@@ -37,7 +38,7 @@ def fft_denoise(signal, sigma):
     return torch.real(torch.fft.ifft2(denoised_fft))
 
 
-def wavelet_denoise(input_img, noise_sigma, wavelet='db4', level=3):
+def wavelet_denoise(input_img, noise_sigma, wavelet="db4", level=3):
     """小波阈值去噪"""
     np_img = input_img.squeeze().cpu().numpy()
     coeffs = pywt.wavedec2(np_img, wavelet, level=level)
@@ -47,19 +48,23 @@ def wavelet_denoise(input_img, noise_sigma, wavelet='db4', level=3):
 
     # 各层高频系数阈值处理
     coeffs_thresh = [coeffs[0]] + [
-        (pywt.threshold(cH, threshold, mode='soft'),
-            pywt.threshold(cV, threshold, mode='soft'),
-            pywt.threshold(cD, threshold, mode='soft'))
+        (
+            pywt.threshold(cH, threshold, mode="soft"),
+            pywt.threshold(cV, threshold, mode="soft"),
+            pywt.threshold(cD, threshold, mode="soft"),
+        )
         for cH, cV, cD in coeffs[1:]
     ]
 
     restored_np = pywt.waverec2(coeffs_thresh, wavelet)
     return torch.from_numpy(restored_np).unsqueeze(0).to(input_img.device)
 
+
 def splits_and_mean(a, sf):
     b = torch.stack(torch.chunk(a, sf, dim=2), dim=4)
     b = torch.cat(torch.chunk(b, sf, dim=3), dim=4)
     return torch.mean(b, dim=-1)
+
 
 def circular_conv_2d_fft(image: torch.Tensor, kernel: torch.Tensor):
     if image.dim() == 2:
@@ -75,7 +80,13 @@ def circular_conv_2d_fft(image: torch.Tensor, kernel: torch.Tensor):
     product = fft_image * fft_kernel
     result = torch.fft.ifft2(product)
 
-    return torch.real(result), torch.real(fft_image), torch.real(fft_kernel), torch.real(product)
+    return (
+        torch.real(result),
+        torch.real(fft_image),
+        torch.real(fft_kernel),
+        torch.real(product),
+    )
+
 
 def reconstruct_image(Hx, SHx_n, kernel, sf, alpha, mode="nearest"):
     SHy = torch.zeros_like(Hx)
@@ -101,6 +112,7 @@ def reconstruct_image(Hx, SHx_n, kernel, sf, alpha, mode="nearest"):
 
     return ans_
 
+
 if __name__ == "__main__":
     # 加载图像和参数设置
     image = uint2tensor(imread_uint_3(Path("src/utils/test.png"))).unsqueeze(0)
@@ -114,30 +126,30 @@ if __name__ == "__main__":
     # 模拟降质过程
     Hx, Fx, Fk, FHx = circular_conv_2d_fft(image, kernel)
     SHx = Hx[..., ::sf, ::sf]
-    SHx_n = SHx + torch.randn_like(SHx) * sigma / 255.
+    SHx_n = SHx + torch.randn_like(SHx) * sigma / 255.0
 
     # 不去噪的重建
     recon_no_denoise = reconstruct_image(Hx, SHx_n, kernel, sf, alpha, mode)
 
     # 维纳滤波去噪后的重建
-    SHx_n_wiener = fft_denoise(SHx_n, sigma/255.)
+    SHx_n_wiener = fft_denoise(SHx_n, sigma / 255.0)
     recon_wiener = reconstruct_image(Hx, SHx_n_wiener, kernel, sf, alpha, mode)
 
     # 小波去噪后的重建
-    SHx_n_wavelet = wavelet_denoise(SHx_n, sigma/255.)
+    SHx_n_wavelet = wavelet_denoise(SHx_n, sigma / 255.0)
     recon_wavelet = reconstruct_image(Hx, SHx_n_wavelet, kernel, sf, alpha, mode)
 
     # 显示结果对比
     imshow(
         [
             tensor2float(image.squeeze()),  # 原始图像
-            tensor2float(Hx.squeeze()),    # 模糊后的图像
-            tensor2float(SHx_n.squeeze()), # 降采样+加噪的图像
+            tensor2float(Hx.squeeze()),  # 模糊后的图像
+            tensor2float(SHx_n.squeeze()),  # 降采样+加噪的图像
             tensor2float(SHx_n_wiener.squeeze()),  # 维纳滤波去噪结果
-            tensor2float(SHx_n_wavelet.squeeze()), # 小波去噪结果
+            tensor2float(SHx_n_wavelet.squeeze()),  # 小波去噪结果
             tensor2float(recon_no_denoise.squeeze()),  # 不去噪的重建结果
-            tensor2float(recon_wiener.squeeze()),      # 维纳滤波后的重建结果
-            tensor2float(recon_wavelet.squeeze()),      # 小波去噪后的重建结果
+            tensor2float(recon_wiener.squeeze()),  # 维纳滤波后的重建结果
+            tensor2float(recon_wavelet.squeeze()),  # 小波去噪后的重建结果
         ],
         titles=[
             "Original Image",
@@ -148,5 +160,5 @@ if __name__ == "__main__":
             "Recon (No Denoise)",
             "Recon (Wiener)",
             "Recon (Wavelet)",
-        ]
+        ],
     )

@@ -20,7 +20,6 @@ from src.utils import (
 class Trainer:
     def __init__(self, CONFIG_NAME: str, device: torch.device):
         self.CONFIG_NAME = CONFIG_NAME
-        self._init_train()
         config = Config.from_toml(f"configs/{CONFIG_NAME}.toml")
         config.cur_time = get_cur_time()
         self.device = device
@@ -28,8 +27,9 @@ class Trainer:
         self.best_val_loss = float("inf")
         self.psnr = PSNR().to(self.device)
         self.ssim = SSIM().to(self.device)
-        self.logger = Logger(log_dir=self.dst_dir, config=config)
         self.dst_dir = Path("experiments") / config.model.name / config.cur_time
+        self.logger = Logger(log_dir=self.dst_dir, config=config)
+        self._init_train()
         self.train_dataloader = get_dataloader(config.datasets, "train", self.device)
         self.val_dataloader = get_dataloader(config.datasets, "val", self.device)
         self.test_dataloader = get_dataloader(config.datasets, "test", self.device)

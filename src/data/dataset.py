@@ -42,9 +42,9 @@ class DefaultDataset(data.Dataset):
                 # A.Rotate(),
                 A.VerticalFlip(),
                 A.HorizontalFlip(),
-                A.ColorJitter(
-                    brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2, p=0.2
-                ),
+                # A.ColorJitter(
+                #     brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2, p=0.2
+                # ),
                 A.RandomCrop(height=patch_size, width=patch_size),
             ]
         )

@@ -5,10 +5,10 @@ import torch.nn.functional as F
 from src.config import Config
 from src.utils import DegradationOutput, wiener_denoiser
 from .backbone import ResUNet
-
+from src.utils.utils_image import imshow, tensor2float
 
 class HyperNet(nn.Module):
-    def __init__(self, in_nc=4, channel=64, out_nc=16, k_in=1):
+    def __init__(self, in_nc=2, channel=64, out_nc=8):
         super().__init__()
         self.net = nn.Sequential(
             nn.Conv2d(in_nc, channel, 1, padding=0, bias=True),
@@ -27,7 +27,7 @@ class DataNet(nn.Module):
     def __init__(self, need_loop=True):
         super().__init__()
         self.need_loop = need_loop
-        self.mode = "nearest"
+        self.mode = "bicubic"
 
     @staticmethod
     def splits_and_mean(a, sf):
@@ -38,8 +38,9 @@ class DataNet(nn.Module):
     def forward(self, input: DegradationOutput, alpha, FK, FCK, F2K, FCKFSHy):
         if input.type == 1:
             sf_ = input.sf
+            v = input.R_img.clone()
             while True:
-                FR = FCKFSHy + fft2(alpha * input.R_img)
+                FR = FCKFSHy + fft2(alpha * v)
                 _FKFR_, _F2K_ = (
                     self.splits_and_mean(FK * FR, input.sf),
                     self.splits_and_mean(F2K, input.sf),
@@ -50,16 +51,22 @@ class DataNet(nn.Module):
                 )
                 FX = (FR - FCK_FKFR_FMdiv_FK2_FM) / alpha
                 ans_ = ifft2(FX).real
-                if sf_ == 2 or sf_ == 3 or not self.need_loop:
+
+                imshow([tensor2float(ans_.squeeze())])
+                if (sf_ == 1) or (sf_ == 2) or (sf_ == 3) or (not self.need_loop):
                     break
                 sf_ = sf_ // 2
-                SHx_n_true = F.avg_pool2d(ans_, kernel_size=sf_, stride=sf_, padding=0)
-                input.R_img = F.interpolate(
+                SHx_n_true = F.avg_pool2d(ans_, kernel_size=sf_, stride=sf_)
+                v = F.interpolate(
                     wiener_denoiser(SHx_n_true, input.sigma),
                     scale_factor=sf_,
                     mode=self.mode,
                 )
-            return ifft2(FX).real
+
+                print(sf_)
+                imshow([tensor2float(ans_.squeeze()), tensor2float(SHx_n_true.squeeze())])
+                # breakpoint()
+            return ans_
         else:
             return (input.L_img + alpha * input.R_img) / (input.mask + alpha)
 
@@ -70,7 +77,7 @@ class defaultnet(nn.Module):
         self.opt = opt
         self.d = DataNet()
         self.p = ResUNet()
-        self.h = HyperNet(in_nc=4, channel=64, out_nc=2 * opt.iter_num)
+        self.h = HyperNet(in_nc=2, channel=64, out_nc=2 * opt.iter_num)
 
     @staticmethod
     def prepare_frequency_components(input: DegradationOutput) -> tuple:
@@ -98,8 +105,11 @@ class defaultnet(nn.Module):
                 dim=1,
             )
         )
+        ans = None
+        imshow([tensor2float(input.L_img.squeeze()),tensor2float(input.H_img.squeeze()), tensor2float(input.R_img.squeeze()), (input.k.squeeze())])
         for i in range(self.opt.iter_num):
-            input.R_img = self.d(
+            ab[:, i : i + 1, ...]=4e-6
+            ans = self.d(
                 input,
                 ab[:, i : i + 1, ...],
                 FK,
@@ -107,15 +117,15 @@ class defaultnet(nn.Module):
                 F2K,
                 FCKFSHy,
             )
-            input.R_img = self.p(
-                torch.cat(
-                    (
-                        input.R_img,
-                        ab[
-                            :, self.opt.iter_num + i : self.opt.iter_num + i + 1, ...
-                        ].repeat(1, 1, input.R_img.size(-2), input.R_img.size(-1)),
-                    ),
-                    dim=1,
-                )
-            )
-        return input.R_img
+            # ans = self.p(
+            #     torch.cat(
+            #         (
+            #             ans,
+            #             ab[
+            #                 :, self.opt.iter_num + i : self.opt.iter_num + i + 1, ...
+            #             ].repeat(1, 1, input.R_img.size(-2), input.R_img.size(-1)),
+            #         ),
+            #         dim=1,
+            #     )
+            # )
+        return ans

@@ -8,12 +8,18 @@ dependencies = [
     "albumentations>=2.0.5",
     "matplotlib>=3.10.1",
     "opencv-python>=4.11.0.86",
+    "torchdeq>=0.1.0",
     "wandb>=0.19.5",
 ]
 
 [project.optional-dependencies]
 cpu = ["torch>=2.5.1", "torchvision>=0.20.1"]
 cu124 = ["torch>=2.5.1", "torchvision>=0.20.1"]
+
+[tool.pyright]
+venvPath='.'
+venv=".venv"
+exclude=['.venv']
 
 [tool.uv]
 conflicts = [[{ extra = "cpu" }, { extra = "cu124" }]]

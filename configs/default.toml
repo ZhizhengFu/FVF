@@ -32,8 +32,8 @@ pin_memory = false
 
 [datasets.train]
 root_dir = "datasets/test/Set14"
-patch_size = 240
-sf = [1, 2, 3, 4]
+patch_size = 192
+sf = [1, 2, 3, 4, 8]
 sr = [0.2, 0.5]
 
 [datasets.val]
